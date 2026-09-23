@@ -1,0 +1,1795 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>데칼코마니</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#2b2b2b; --a:#3f7ff0; --b:#f0584a; --paper:#fffdf6; --muted:#6d6a62;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; }
+  body {
+    font-family:'Jua', system-ui, 'Malgun Gothic', sans-serif; color:var(--ink);
+    background:linear-gradient(#7cc8ff 0%, #bfe6ff 55%, #e8f7ff 100%);
+    user-select:none; -webkit-user-select:none;
+  }
+  #c { position:fixed; inset:0; width:100vw; height:100vh; display:block; touch-action:none; cursor:crosshair; }
+
+  .card {
+    background:var(--paper); border:3px solid var(--ink); border-radius:16px;
+    box-shadow:4px 4px 0 var(--ink); padding:8px 12px;
+  }
+  #hud {
+    position:fixed; top:12px; left:16px; right:16px; display:flex; gap:12px; align-items:stretch;
+    pointer-events:none; max-width:1100px; margin:0 auto;
+  }
+  .pcard { flex:1; transition:transform .25s, box-shadow .25s; }
+  .pcard.active { transform:translateY(-2px) scale(1.03); }
+  #cardA.active { box-shadow:4px 4px 0 var(--a); }
+  #cardB.active { box-shadow:4px 4px 0 var(--b); }
+  .who { display:flex; align-items:center; justify-content:space-between; font-size:20px; margin-bottom:6px; }
+  .badge { display:inline-flex; width:30px; height:30px; border-radius:50%; border:3px solid var(--ink);
+           align-items:center; justify-content:center; color:#fff; font-size:17px; margin-right:6px; }
+  .badge.a { background:var(--a); } .badge.b { background:var(--b); }
+  .bar { height:16px; border:3px solid var(--ink); border-radius:10px; background:#e7e2d6; overflow:hidden; }
+  .bar i { display:block; height:100%; width:100%; transition:width .5s cubic-bezier(.3,1.4,.5,1); }
+  #barA { background:var(--a); } #barB { background:var(--b); }
+  #mid { min-width:170px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+  #turnText { font-size:22px; }
+  #wind { display:flex; align-items:center; gap:8px; font-size:17px; }
+  #windDial { width:30px; height:30px; border-radius:50%; border:3px solid var(--ink); background:#fff;
+              display:flex; align-items:center; justify-content:center; }
+  #windArrow { display:block; font-size:18px; line-height:1; transition:transform .5s; }
+  #windDots { letter-spacing:1px; font-size:12px; color:#4aa3df; }
+
+  #bottom {
+    position:fixed; left:16px; right:16px; bottom:12px; display:flex; gap:10px; align-items:center;
+    flex-wrap:wrap; justify-content:space-between; pointer-events:none; max-width:1100px; margin:0 auto;
+  }
+  #help { font-size:15px; padding:6px 12px; max-width:560px; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; pointer-events:auto; }
+  button {
+    font:inherit; font-size:16px; color:var(--ink); background:#ffe066; border:3px solid var(--ink);
+    border-radius:12px; box-shadow:3px 3px 0 var(--ink); padding:6px 14px; cursor:pointer;
+  }
+  button:hover { background:#ffd43b; }
+  button:active { transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink); }
+
+  #banner { position:fixed; left:50%; top:40%; transform:translate(-50%,-50%); text-align:center;
+            pointer-events:none; opacity:0; }
+  #banner.show { animation:pop 1.25s ease forwards; }
+  #banner .big { font-size:64px; color:#fff; -webkit-text-stroke:3px var(--ink);
+                 text-shadow:5px 5px 0 var(--ink); }
+  #banner .small { font-size:24px; color:var(--ink); background:var(--paper); border:3px solid var(--ink);
+                   border-radius:12px; display:inline-block; padding:2px 14px; margin-top:6px; }
+  @keyframes pop {
+    0% { opacity:0; transform:translate(-50%,-50%) scale(.4) rotate(-6deg); }
+    18% { opacity:1; transform:translate(-50%,-50%) scale(1.12) rotate(2deg); }
+    30% { transform:translate(-50%,-50%) scale(1) rotate(0); }
+    80% { opacity:1; }
+    100% { opacity:0; transform:translate(-50%,-50%) scale(1); }
+  }
+
+  #floaters { position:fixed; inset:0; pointer-events:none; }
+  .floater { position:absolute; transform:translate(-50%,-100%); white-space:nowrap; }
+  .floater span { display:block; font-size:30px; -webkit-text-stroke:1.5px var(--ink);
+                  text-shadow:3px 3px 0 var(--ink); animation:rise 1.6s ease-out forwards; }
+  .floater.small span { font-size:22px; }
+  @keyframes rise {
+    0% { opacity:0; transform:translateY(10px) scale(.6); }
+    15% { opacity:1; transform:translateY(0) scale(1.15); }
+    25% { transform:translateY(-4px) scale(1); }
+    75% { opacity:1; }
+    100% { opacity:0; transform:translateY(-50px); }
+  }
+
+  #over { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+          background:rgba(30,30,40,.35); }
+  #over[hidden] { display:none; }
+  #over .card { text-align:center; padding:22px 34px; }
+  #overText { font-size:48px; margin-bottom:12px; }
+
+  #menu { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+          background:rgba(30,30,40,.35); padding:16px; }
+  #menu[hidden] { display:none; }
+  #menu > .card { width:100%; max-width:580px; max-height:calc(100vh - 32px); overflow:auto; padding:18px 22px; }
+  #menu h1 { margin:0 0 10px; font-weight:normal; font-size:40px; text-align:center; color:var(--a);
+             -webkit-text-stroke:1.5px var(--ink); text-shadow:3px 3px 0 var(--ink); }
+  #menu h1 span { color:var(--b); }
+  .row { display:flex; align-items:center; gap:10px; margin:9px 0; flex-wrap:wrap; }
+  .row > label { width:92px; font-size:17px; }
+  .seg { display:flex; gap:6px; flex-wrap:wrap; flex:1; }
+  .seg button { background:#fff; box-shadow:2px 2px 0 var(--ink); padding:4px 12px; font-size:15px; border-width:2.5px; }
+  .seg button.on { background:#ffe066; }
+  .seg.disabled { opacity:.35; pointer-events:none; }
+  .hint { font-size:13px; color:var(--muted); margin:-4px 0 4px 102px; }
+  .sep { border:0; border-top:2px dashed #d8d2c2; margin:12px 0; }
+  #diffMeter { text-align:center; margin:12px 0 10px; font-size:18px; }
+  #diffMeter b { color:#f59f00; font-weight:normal; letter-spacing:2px; }
+  .menuBtns { display:flex; gap:10px; justify-content:center; }
+  #startBtn { font-size:22px; padding:8px 36px; background:#8ce99a; }
+  #over .menuBtns { margin-top:4px; }
+  @media (max-width:520px) { .row > label { width:100%; } .hint { margin-left:0; } }
+
+  #onlineBox .seg { align-items:center; }
+  #onlineBox input { font:inherit; font-size:16px; width:110px; padding:4px 8px; border:2.5px solid var(--ink);
+                     border-radius:10px; background:#fff; text-transform:uppercase; }
+  #linkIn { flex:1; min-width:0; width:auto !important; text-transform:none !important; font-size:13px !important; }
+  #netStatus { font-size:15px; margin:2px 0 6px 102px; color:var(--a); min-height:1em; }
+  #netStatus.err { color:var(--b); }
+  @media (max-width:520px) { #netStatus { margin-left:0; } }
+
+  #loading { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; font-size:26px; }
+
+  @media (max-width:700px) {
+    #hud { gap:8px; } #mid { min-width:110px; } #turnText { font-size:17px; }
+    .who { font-size:16px; } #help { display:none; } #banner .big { font-size:44px; }
+  }
+</style>
+<!-- 온라인 대전: 브라우저끼리 직접 연결 (처음 찾을 때만 PeerJS 무료 중개 서버 사용) -->
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div class="card pcard" id="cardA">
+    <div class="who"><span><span class="badge a">A</span><span id="nameA">플레이어 A</span></span><span id="hpA">100</span></div>
+    <div class="bar"><i id="barA"></i></div>
+  </div>
+  <div class="card" id="mid">
+    <div id="turnText">준비</div>
+    <div id="wind"><span id="windDial"><span id="windArrow">➜</span></span><span id="windText">바람 없음</span></div>
+    <div id="windDots"></div>
+  </div>
+  <div class="card pcard" id="cardB">
+    <div class="who"><span><span class="badge b">B</span><span id="nameB">플레이어 B</span></span><span id="hpB">100</span></div>
+    <div class="bar"><i id="barB"></i></div>
+  </div>
+</div>
+
+<div id="banner"><div class="big"></div><div class="small"></div></div>
+<div id="floaters"></div>
+
+<div id="bottom">
+  <div class="card" id="help">내 구역을 클릭해서 물감총 발사! 바람에 밀린 자리가 접혀서 상대 구역에 찍혀요. 멀리 쏠수록 바람을 더 타요.</div>
+  <div class="btns">
+    <button id="settingsBtn">설정</button>
+    <button id="viewBtn">위에서 보기</button>
+    <button id="soundBtn">소리 켜짐</button>
+    <button id="restartBtn">다시 시작</button>
+  </div>
+</div>
+
+<div id="over" hidden><div class="card"><div id="overText"></div>
+  <div class="menuBtns"><button id="overSettingsBtn">설정</button><button id="againBtn">한 판 더!</button></div></div></div>
+
+<div id="menu" hidden>
+  <div class="card">
+    <h1>데칼<span>코마니</span></h1>
+    <div class="row"><label>상대</label><div class="seg" data-key="opp">
+      <button data-v="ai">AI 대결</button><button data-v="pvp">친구와 (한 화면)</button><button data-v="online">온라인 대전</button></div></div>
+    <div class="row" id="aiRow"><label>AI 실력</label><div class="seg" data-key="ai">
+      <button data-v="easy">쉬움</button><button data-v="normal">보통</button><button data-v="hard">어려움</button><button data-v="master">고수</button></div></div>
+    <div class="hint" id="aiHint"></div>
+    <div id="onlineBox" hidden>
+      <div class="row"><label>온라인</label><div class="seg">
+        <button id="hostBtn">방 만들기</button><input id="codeIn" maxlength="8" placeholder="방 코드"><button id="joinBtn">참가</button></div></div>
+      <div class="row" id="linkRow" hidden><label>초대 링크</label><div class="seg">
+        <input id="linkIn" readonly><button id="copyBtn">복사</button></div></div>
+      <div id="netStatus"></div>
+    </div>
+    <hr class="sep">
+    <div class="row"><label>빠른 설정</label><div class="seg" id="presetSeg">
+      <button data-p="easy">쉬운 판</button><button data-p="normal">보통 판</button><button data-p="hard">어려운 판</button></div></div>
+    <div class="row"><label>물감폭탄</label><div class="seg" data-key="bomb">
+      <button data-v="big">크게</button><button data-v="normal">보통</button><button data-v="small">작게</button></div></div>
+    <div class="hint" id="bombHint"></div>
+    <div class="row"><label>바람</label><div class="seg" data-key="wind">
+      <button data-v="off">없음</button><button data-v="weak">약하게</button><button data-v="normal">보통</button><button data-v="strong">강하게</button></div></div>
+    <div class="hint" id="windHint"></div>
+    <div class="row"><label>맵 크기</label><div class="seg" data-key="map">
+      <button data-v="small">작게</button><button data-v="normal">보통</button><button data-v="large">크게</button></div></div>
+    <div class="hint" id="mapHint"></div>
+    <div class="row"><label>캐릭터 위치</label><div class="seg" data-key="move">
+      <button data-v="manual">직접 이동</button><button data-v="auto">자동 이동</button></div></div>
+    <div class="hint" id="moveHint"></div>
+    <div class="row"><label>접는 방향</label><div class="seg" data-key="axis">
+      <button data-v="v">좌우</button><button data-v="h">상하</button></div></div>
+    <div id="diffMeter"></div>
+    <div class="menuBtns"><button id="closeMenuBtn">계속하기</button><button id="startBtn">시작!</button></div>
+  </div>
+</div>
+<div id="loading">불러오는 중…</div>
+
+<script>
+  // three.js(CDN)를 못 불러오면 안내
+  setTimeout(() => {
+    const l = document.getElementById('loading');
+    if (l) l.textContent = '3D 엔진을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.';
+  }, 10000);
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+document.getElementById('loading').remove();
+
+// ================= 설정 =================
+// ================= 난이도 설정표 =================
+const CFG = {
+  bomb: {   // 물감폭탄 크기 = 판정 반경(m)
+    big:    { core: 0.65, edge: 1.3 },
+    normal: { core: 0.45, edge: 0.9 },
+    small:  { core: 0.3,  edge: 0.6 },
+  },
+  wind: {   // 매 턴 바람 세기 범위(단계)
+    off:    { min: 0, max: 0 },
+    weak:   { min: 0, max: 2 },
+    normal: { min: 0, max: 5 },
+    strong: { min: 2, max: 8 },
+  },
+  map: {    // 판 크기(m)
+    small:  { w: 12, d: 8,  move: 4.5 },     // move = 한 턴 이동 가능 거리(m)
+    normal: { w: 16, d: 10, move: 5.5 },
+    large:  { w: 22, d: 14, move: 7 },
+  },
+  ai: {     // sigma = 눈대중 오차(m), comp = 바람 보정률, pref = 직접 이동 때 선호하는 사격 거리(m)
+    easy:   { sigma: 1.15, comp: 0.4,  pref: 3,  label: '쉬움',   hint: '대칭 위치를 대충 잡고 바람은 거의 못 읽어요' },
+    normal: { sigma: 0.8,  comp: 0.7,  pref: 5,  label: '보통',   hint: '대칭은 꽤 맞히지만 바람 보정이 어설퍼요' },
+    hard:   { sigma: 0.55, comp: 0.9,  pref: 7,  label: '어려움', hint: '대칭과 바람을 거의 정확히 읽어요' },
+    master: { sigma: 0.3,  comp: 1.0,  pref: 8,  label: '고수',   hint: '빈틈이 거의 없어요. 행운을 빌어요' },
+  },
+};
+const QUICK = {
+  easy:   { bomb: 'big',    wind: 'weak',   map: 'small' },
+  normal: { bomb: 'normal', wind: 'normal', map: 'normal' },
+  hard:   { bomb: 'small',  wind: 'strong', map: 'large' },
+};
+const SETTINGS_KEY = 'decalcomanie.settings';
+const settings = { opp: 'ai', ai: 'normal', bomb: 'normal', wind: 'normal', map: 'normal', axis: 'v', move: 'manual' };
+try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch {}
+
+let BW = 16, BD = 10;                   // 판 가로(x), 세로(z)
+let HIT_CORE = 0.45, HIT_EDGE = 0.9;    // 정타 / 스침 판정 반경
+const DMG_CORE = 40, DMG_EDGE = 20;
+const DRIFT = 0.05;                     // 바람 1단계 · 1m 비행당 밀리는 거리
+const MAX_MARKS = 8;
+const NAMES = ['A', 'B'];
+const COLORS = [0x4d8dff, 0xff6b5a];
+const CSS_COLORS = ['#3f7ff0', '#f0584a'];
+const PAPER = [0xeaf2ff, 0xffece6];
+
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a, b) => a + Math.random() * (b - a);
+const ease = {
+  inCubic: t => t * t * t,
+  outCubic: t => 1 - (1 - t) ** 3,
+  inQuad: t => t * t,
+  outBack: t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2; },
+};
+function lerpAngle(a, b, t) {
+  const d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+  return a + d * t;
+}
+
+// ================= 렌더러 / 씬 =================
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 300);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xa9bfd6, 1.7));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+sun.position.set(7, 16, 9);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 1, far: 50 });
+sun.shadow.bias = -0.0005;
+sun.shadow.normalBias = 0.02;
+scene.add(sun);
+
+// 카툰 셰이딩: 3단계 명암 + 검은 외곽선
+const GRAD = (() => {
+  const t = new THREE.DataTexture(new Uint8Array([120, 195, 255]), 3, 1, THREE.RedFormat);
+  t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t;
+})();
+const toon = (color, extra = {}) => new THREE.MeshToonMaterial({ color, gradientMap: GRAD, ...extra });
+const OUTLINE = new THREE.MeshBasicMaterial({ color: 0x2b2b2b, side: THREE.BackSide });
+
+function mesh(geo, mat, shadow = true) {
+  const m = new THREE.Mesh(geo, mat);
+  m.castShadow = shadow;
+  return m;
+}
+function outline(m, thick = 0.035) {
+  m.geometry.computeBoundingSphere();
+  const o = new THREE.Mesh(m.geometry, OUTLINE);
+  o.scale.setScalar(1 + thick / m.geometry.boundingSphere.radius);
+  m.add(o);
+  return m;
+}
+
+// ================= 트윈 (애니메이션 타임라인) =================
+const tweens = [];
+function tween(dur, fn, ef = t => t) {
+  return new Promise(res => tweens.push({ t0: performance.now(), dur, fn, ef, res }));
+}
+const wait = ms => tween(ms, () => {});
+function runTweens(now) {
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const tw = tweens[i];
+    const k = Math.min(1, (now - tw.t0) / tw.dur);
+    tw.fn(tw.ef(k));
+    if (k >= 1) { tweens.splice(i, 1); tw.res(); }
+  }
+}
+
+// ================= 효과음 (WebAudio 합성) =================
+const sfx = (() => {
+  let ac = null, muted = false;
+  const unlock = () => {
+    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === 'suspended') ac.resume();
+  };
+  function tone(f0, f1, dur, type = 'sine', vol = 0.2, delay = 0) {
+    if (muted || !ac) return;
+    const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur);
+  }
+  function noise(dur, f0, f1, vol = 0.3, q = 1) {
+    if (muted || !ac) return;
+    const t = ac.currentTime, buf = ac.createBuffer(1, Math.ceil(ac.sampleRate * dur), ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = buf; f.type = 'bandpass'; f.Q.value = q;
+    f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    s.connect(f).connect(g).connect(ac.destination); s.start(t);
+  }
+  return {
+    unlock,
+    toggle() { muted = !muted; return muted; },
+    shoot() { tone(620, 180, 0.16, 'square', 0.08); noise(0.12, 2000, 600, 0.15); },
+    splat() { noise(0.25, 1400, 200, 0.5, 0.8); },
+    whoosh() { noise(0.65, 250, 2600, 0.22, 0.7); },
+    stamp() { noise(0.35, 500, 60, 0.7, 0.6); tone(150, 45, 0.35, 'sine', 0.4); },
+    hit() { tone(900, 300, 0.3, 'triangle', 0.2); tone(1200, 500, 0.25, 'square', 0.05, 0.05); },
+    miss() { tone(330, 220, 0.25, 'sine', 0.12); },
+    hop() { tone(280, 720, 0.14, 'sine', 0.1); },
+    boing() { tone(200, 520, 0.25, 'triangle', 0.14); },
+    win() { [523, 659, 784, 1046].forEach((f, i) => tone(f, f * 1.01, 0.3, 'triangle', 0.18, i * 0.14)); },
+  };
+})();
+
+// ================= 텍스처 =================
+function canvasTex(size, draw) {
+  const c = document.createElement('canvas');
+  c.width = size.w ?? size; c.height = size.h ?? size;
+  draw(c.getContext('2d'), c);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
+// 종이 질감: 반복 무늬 없이 불규칙한 결/얼룩만 → 칸을 셀 수 있는 기준선이 없음
+function paperTexture(w, h) {
+  const W = 512, H = Math.round(512 * h / w);
+  return canvasTex({ w: W, h: H }, g => {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 60; i++) {
+      const x = Math.random() * W, y = Math.random() * H, r = 20 + Math.random() * 90;
+      const gr = g.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, `rgba(120,110,90,${0.02 + Math.random() * 0.03})`);
+      gr.addColorStop(1, 'rgba(120,110,90,0)');
+      g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    g.lineCap = 'round';
+    for (let i = 0; i < 260; i++) {
+      const x = Math.random() * W, y = Math.random() * H, a = Math.random() * Math.PI, l = 3 + Math.random() * 12;
+      g.strokeStyle = `rgba(90,85,70,${0.05 + Math.random() * 0.08})`; g.lineWidth = 0.6 + Math.random();
+      g.beginPath(); g.moveTo(x, y);
+      g.quadraticCurveTo(x + Math.cos(a) * l * 0.5 + rand(-2, 2), y + Math.sin(a) * l * 0.5 + rand(-2, 2),
+        x + Math.cos(a) * l, y + Math.sin(a) * l);
+      g.stroke();
+    }
+  });
+}
+
+// 물감 자국: 매 발사마다 모양이 달라짐. 테두리는 어둡게 → 색을 곱하면 카툰 외곽선이 됨
+function splatTexture() {
+  const shapes = [[0, 0, 54]];
+  for (let i = 0; i < 9; i++) {
+    const a = Math.random() * Math.PI * 2, r = 30 + Math.random() * 28;
+    shapes.push([Math.cos(a) * r, Math.sin(a) * r, 14 + Math.random() * 16]);
+  }
+  for (let i = 0; i < 14; i++) {
+    const a = Math.random() * Math.PI * 2, r = 64 + Math.random() * 46;
+    shapes.push([Math.cos(a) * r, Math.sin(a) * r, 3 + Math.random() * 7]);
+  }
+  return canvasTex(256, g => {
+    g.translate(128, 128);
+    const pass = (color, grow) => {
+      g.fillStyle = color;
+      for (const [x, y, r] of shapes) { g.beginPath(); g.arc(x, y, r + grow, 0, Math.PI * 2); g.fill(); }
+    };
+    pass('#555', 4);
+    pass('#fff', 0);
+    g.fillStyle = 'rgba(255,255,255,0.55)';
+    g.beginPath(); g.ellipse(-16, -18, 16, 9, -0.6, 0, Math.PI * 2); g.fill();
+  });
+}
+
+function tagSprite(text, color) {
+  const tex = canvasTex(128, g => {
+    g.beginPath(); g.arc(64, 64, 52, 0, Math.PI * 2);
+    g.fillStyle = '#' + color.toString(16).padStart(6, '0'); g.fill();
+    g.lineWidth = 9; g.strokeStyle = '#2b2b2b'; g.stroke();
+    g.fillStyle = '#fff'; g.font = '64px Jua, sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 64, 70);
+  });
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false }));
+  s.scale.set(0.55, 0.55, 1);
+  s.renderOrder = 20;
+  return s;
+}
+
+// ================= 대칭 / 구역 =================
+let axis = 'v';   // 'v' = 좌우(세로 접는 선), 'h' = 상하(가로 접는 선)
+const zoneOf = p => axis === 'v' ? (p.x < 0 ? 0 : 1) : (p.z < 0 ? 0 : 1);
+const mirror = p => axis === 'v' ? { x: -p.x, z: p.z } : { x: p.x, z: -p.z };
+const distToHinge = p => Math.abs(axis === 'v' ? p.x : p.z);
+function inZone(p, z) {
+  if (Math.abs(p.x) > BW / 2 || Math.abs(p.z) > BD / 2) return false;
+  const s = axis === 'v' ? p.x : p.z;
+  return z === 0 ? s < 0 : s > 0;
+}
+function randomSpot(z, from) {
+  for (let i = 0; i < 80; i++) {
+    const p = { x: rand(-BW / 2 + 0.9, BW / 2 - 0.9), z: rand(-BD / 2 + 0.9, BD / 2 - 0.9) };
+    if (axis === 'v') p.x = z === 0 ? -Math.abs(p.x) : Math.abs(p.x);
+    else p.z = z === 0 ? -Math.abs(p.z) : Math.abs(p.z);
+    if (distToHinge(p) < 1.1) continue;
+    if (from) { const d = Math.hypot(p.x - from.x, p.z - from.z); if (d < 1.6 || d > 4.5) continue; }
+    return p;
+  }
+  return from ? { ...from } : (axis === 'v' ? { x: z ? 4 : -4, z: 0 } : { x: 0, z: z ? 2.5 : -2.5 });
+}
+
+// ================= 배경 (잔디, 나무, 구름, 풍향계, 바람 줄기) =================
+const ground = mesh(new THREE.PlaneGeometry(260, 260), toon(0x8fd46a), false);
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.62; ground.receiveShadow = true;
+scene.add(ground);
+
+(function trees() {
+  const trunkMat = toon(0x9a6b43), leafMats = [toon(0x5dbb4a), toon(0x49a843), toon(0x72c85a)];
+  for (let i = 0; i < 40; i++) {
+    const a = Math.random() * Math.PI * 2, r = 13 + Math.random() * 20;
+    const x = Math.cos(a) * r * 1.15, z = Math.sin(a) * r * 0.9 - 4;
+    if (z > 4 && Math.abs(x) < 17) continue;             // 카메라 앞은 비워둠
+    if (Math.abs(x) < 13.5 && Math.abs(z) < 9.5) continue; // 가장 큰 판과 겹치지 않게
+    const t = new THREE.Group(), s = rand(0.8, 1.5);
+    const trunk = outline(mesh(new THREE.CylinderGeometry(0.18, 0.26, 1.3, 8), trunkMat), 0.03);
+    trunk.position.y = 0.65; t.add(trunk);
+    const lm = leafMats[i % 3];
+    for (const [ox, oy, oz, rr] of [[0, 1.9, 0, 1], [0.55, 1.6, 0.2, 0.7], [-0.5, 1.7, -0.1, 0.72]]) {
+      const b = outline(mesh(new THREE.SphereGeometry(rr, 16, 12), lm), 0.05);
+      b.position.set(ox, oy, oz); t.add(b);
+    }
+    t.position.set(x, -0.62, z); t.scale.setScalar(s); t.rotation.y = Math.random() * 6;
+    scene.add(t);
+  }
+})();
+
+const clouds = [];
+(function makeClouds() {
+  const m = toon(0xffffff);
+  for (let i = 0; i < 10; i++) {
+    const c = new THREE.Group();
+    const n = 3 + (Math.random() * 3 | 0);
+    for (let j = 0; j < n; j++) {
+      const b = outline(mesh(new THREE.SphereGeometry(rand(1, 1.8), 16, 12), m, false), 0.06);
+      b.position.set(j * 1.4 - n * 0.7, rand(-0.3, 0.4), rand(-0.4, 0.4));
+      b.scale.y = 0.75; c.add(b);
+    }
+    c.position.set(rand(-45, 45), rand(8, 14), rand(-42, -14));
+    scene.add(c); clouds.push(c);
+  }
+})();
+
+const windsock = (() => {
+  const root = new THREE.Group();
+  root.position.set(0, -0.6, -BD / 2 - 1.4);
+  const pole = outline(mesh(new THREE.CylinderGeometry(0.06, 0.09, 3.6, 10), toon(0xd9d4c7)), 0.03);
+  pole.position.y = 1.8; root.add(pole);
+  const knob = outline(mesh(new THREE.SphereGeometry(0.14, 12, 10), toon(0xffd23f)), 0.03);
+  knob.position.y = 3.65; root.add(knob);
+  const yaw = new THREE.Group(), pitch = new THREE.Group();
+  yaw.position.y = 3.35; yaw.add(pitch); root.add(yaw);
+  const red = toon(0xff5a4a, { side: THREE.DoubleSide }), white = toon(0xffffff, { side: THREE.DoubleSide });
+  for (let i = 0; i < 4; i++) {
+    const r1 = 0.3 - i * 0.05, r2 = 0.3 - (i + 1) * 0.05;
+    const seg = outline(mesh(new THREE.CylinderGeometry(r2, r1, 0.46, 16, 1, true), i % 2 ? white : red), 0.02);
+    seg.rotation.z = -Math.PI / 2; seg.position.x = 0.25 + i * 0.46;
+    pitch.add(seg);
+  }
+  scene.add(root);
+  return { root, yaw, pitch };
+})();
+
+const streaks = [];
+(function makeStreaks() {
+  const geo = new THREE.BoxGeometry(0.9, 0.04, 0.04);
+  for (let i = 0; i < 44; i++) {
+    const s = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 }));
+    s.position.set(rand(-12, 12), rand(0.4, 3), rand(-9, 9));
+    s.userData.speed = rand(0.8, 1.3);
+    scene.add(s); streaks.push(s);
+  }
+})();
+
+// ================= 판 (구역 2개 + 접는 선) =================
+let board = null;
+function buildBoard() {
+  if (board) scene.remove(board);
+  board = new THREE.Group();
+
+  const slab = mesh(new THREE.BoxGeometry(BW + 0.9, 0.6, BD + 0.9), toon(0xd89a5e));
+  slab.position.y = -0.31; slab.receiveShadow = true;
+  board.add(slab);
+  const rim = mesh(new THREE.BoxGeometry(BW + 1.05, 0.14, BD + 1.05), toon(0x2b2b2b), false);
+  rim.position.y = -0.62; board.add(rim);
+
+  for (const z of [0, 1]) {
+    const w = axis === 'v' ? BW / 2 : BW, h = axis === 'v' ? BD : BD / 2;
+    const half = new THREE.Mesh(new THREE.PlaneGeometry(w, h), toon(PAPER[z], { map: paperTexture(w, h) }));
+    half.rotation.x = -Math.PI / 2; half.receiveShadow = true;
+    if (axis === 'v') half.position.set(z ? BW / 4 : -BW / 4, 0, 0);
+    else half.position.set(0, 0, z ? BD / 4 : -BD / 4);
+    board.add(half);
+
+    // 구역 이름
+    const label = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.65), new THREE.MeshBasicMaterial({
+      map: canvasTex({ w: 512, h: 128 }, g => {
+        g.font = '96px Jua, sans-serif'; g.textBaseline = 'middle';
+        g.fillStyle = CSS_COLORS[z]; g.globalAlpha = 0.5; g.fillText(`${NAMES[z]} 구역`, 8, 70);
+      }), transparent: true, depthWrite: false,
+    }));
+    label.rotation.x = -Math.PI / 2;
+    const lz = axis === 'v' ? -BD / 2 + 0.6 : (z ? BD / 2 - 0.6 : -BD / 2 + 0.6);
+    const lx = axis === 'v' ? (z ? BW / 2 - 1.5 : -BW / 2 + 1.5) : -BW / 2 + 1.5;
+    label.position.set(lx, 0.006, lz);
+    board.add(label);
+  }
+
+  // 접는 선 (실선 — 점선 간격이 눈금자 역할을 하지 않도록)
+  const crease = new THREE.Mesh(
+    axis === 'v' ? new THREE.BoxGeometry(0.09, 0.02, BD) : new THREE.BoxGeometry(BW, 0.02, 0.09),
+    new THREE.MeshBasicMaterial({ color: 0x2b2b2b }));
+  crease.position.y = 0.01;
+  board.add(crease);
+  scene.add(board);
+}
+
+// ================= 캐릭터 =================
+function makeChar(zone) {
+  const color = COLORS[zone];
+  const mats = [];
+  const M = c => { const m = toon(c); mats.push(m); return m; };
+  const dark = new THREE.Color(color).multiplyScalar(0.6).getHex();
+  const root = new THREE.Group(), rig = new THREE.Group();
+  root.add(rig);
+
+  const body = outline(mesh(new THREE.CapsuleGeometry(0.42, 0.3, 8, 20), M(color)));
+  body.position.y = 0.62; rig.add(body);
+  const belly = mesh(new THREE.SphereGeometry(0.3, 20, 14), M(0xffffff));
+  belly.scale.set(1, 1.1, 0.45); belly.position.set(0, 0.56, 0.3); rig.add(belly);
+
+  const head = outline(mesh(new THREE.SphereGeometry(0.46, 28, 20), M(color)));
+  head.position.y = 1.42; rig.add(head);
+
+  const eyes = new THREE.Group();
+  eyes.position.set(0, 1.5, 0); rig.add(eyes);
+  const black = new THREE.MeshBasicMaterial({ color: 0x1d1d1d });
+  const shine = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  for (const s of [-1, 1]) {
+    const w = outline(mesh(new THREE.SphereGeometry(0.13, 16, 12), M(0xffffff), false), 0.015);
+    w.position.set(s * 0.17, 0, 0.37); eyes.add(w);
+    const p = mesh(new THREE.SphereGeometry(0.068, 12, 10), black, false);
+    p.position.set(s * 0.17, -0.01, 0.48); eyes.add(p);
+    const h = mesh(new THREE.SphereGeometry(0.022, 8, 6), shine, false);
+    h.position.set(s * 0.17 + 0.025, 0.025, 0.54); eyes.add(h);
+    const cheek = mesh(new THREE.SphereGeometry(0.07, 12, 8), M(0xff9aa8), false);
+    cheek.scale.set(1.2, 0.6, 0.4); cheek.position.set(s * 0.31, 1.33, 0.36); rig.add(cheek);
+    const foot = outline(mesh(new THREE.SphereGeometry(0.15, 14, 10), M(dark)), 0.02);
+    foot.scale.set(1, 0.6, 1.4); foot.position.set(s * 0.2, 0.09, 0.06); rig.add(foot);
+  }
+  const mouth = mesh(new THREE.TorusGeometry(0.07, 0.02, 6, 14, Math.PI), black, false);
+  mouth.rotation.z = Math.PI; mouth.position.set(0, 1.34, 0.44); rig.add(mouth);
+
+  // 물감총
+  const gun = new THREE.Group();
+  gun.position.set(0.44, 0.68, 0.18); rig.add(gun);
+  const barrel = outline(mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.6, 12), M(0x4a4a55)), 0.02);
+  barrel.rotation.x = Math.PI / 2; barrel.position.z = 0.22; gun.add(barrel);
+  const tank = outline(mesh(new THREE.SphereGeometry(0.16, 14, 10), M(color)), 0.02);
+  tank.position.set(0, 0.16, -0.04); gun.add(tank);
+  const tip = outline(mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.08, 12), M(0xffd23f)), 0.02);
+  tip.rotation.x = Math.PI / 2; tip.position.z = 0.53; gun.add(tip);
+
+  // 머리 장식: A = 안테나, B = 고깔모자
+  if (zone === 0) {
+    const stick = mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.35, 6), black);
+    stick.position.set(0, 2.02, 0); rig.add(stick);
+    const ball = outline(mesh(new THREE.SphereGeometry(0.09, 12, 8), M(0xffd23f)), 0.02);
+    ball.position.set(0, 2.22, 0); rig.add(ball);
+  } else {
+    const hat = outline(mesh(new THREE.ConeGeometry(0.22, 0.45, 16), M(0xffd23f)), 0.02);
+    hat.position.set(0.08, 2.0, 0); hat.rotation.z = -0.25; rig.add(hat);
+    const pom = outline(mesh(new THREE.SphereGeometry(0.07, 10, 8), M(0xffffff)), 0.02);
+    pom.position.set(0.14, 2.24, 0); rig.add(pom);
+  }
+
+  const tag = tagSprite(NAMES[zone], color);
+  tag.position.y = 2.65; root.add(tag);
+
+  // 차례 표시 링
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.68, 36),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; ring.visible = false;
+  root.add(ring);
+
+  scene.add(root);
+  return {
+    zone, root, rig, mats, eyes, ring, tag,
+    hp: 100, pos: { x: 0, z: 0 }, hopY: 0, sq: 1, face: 0, faceTarget: 0,
+    hurtT: -1e9, blinkAt: performance.now() + rand(1000, 4000), flat: false, winner: false,
+  };
+}
+
+// 총구 위치. f = 바라볼 방향(기본은 목표 방향 → 조준 미리보기·발사·AI 계산이 모두 같은 값을 씀)
+function gunTip(ch, f = ch.faceTarget) {
+  return new THREE.Vector3(
+    ch.pos.x + Math.sin(f) * 0.72 + Math.cos(f) * 0.44, 0.72,
+    ch.pos.z + Math.cos(f) * 0.72 - Math.sin(f) * 0.44);
+}
+
+// ================= 게임 상태 =================
+let view = 'tilt';
+let players = [], turn = 0, phase = 'idle', game = 0;
+const wind = { angle: 0, str: 0 };
+let marks = [], floaters = [], drops = [], confetti = [];
+const transient = new Set();
+const addT = o => { scene.add(o); transient.add(o); return o; };
+const remT = o => { scene.remove(o); transient.delete(o); };
+let markOrder = 1;
+let shake = 0;
+// 온라인 연결 상태. me = 내가 맡은 구역(방장 0 = A, 참가자 1 = B)
+const net = { peer: null, conn: null, host: false, me: 0, code: '' };
+
+const windVec = () => ({ x: Math.cos(wind.angle) * wind.str, z: Math.sin(wind.angle) * wind.str });
+
+function rollWind(w = wind) {
+  const { min, max } = CFG.wind[settings.wind];
+  w.str = min + Math.floor(Math.random() * (max - min + 1));
+  w.angle = Math.random() * Math.PI * 2;
+  return w;
+}
+function windLabel() {
+  return wind.str ? `바람 ${wind.str}` : '바람 없음';
+}
+
+const isAI = i => settings.opp === 'ai' && i === 1;
+const isOnline = () => settings.opp === 'online';
+const isRemote = i => isOnline() && i !== net.me;   // 온라인: 상대 브라우저가 조작하는 캐릭터
+function turnLabel(i) {
+  if (isOnline()) return i === net.me ? '내 차례' : '친구 차례';
+  if (settings.opp !== 'ai') return `${NAMES[i]} 차례`;
+  return i === 0 ? '내 차례' : 'AI 차례';
+}
+
+function updateHud() {
+  const ai = settings.opp === 'ai';
+  const names = isOnline() ? (net.me === 0 ? ['나', '친구'] : ['친구', '나'])
+    : ai ? ['나', `AI · ${CFG.ai[settings.ai].label}`] : ['플레이어 A', '플레이어 B'];
+  $('nameA').textContent = names[0];
+  $('nameB').textContent = names[1];
+  players.forEach((p, i) => {
+    const k = NAMES[i];
+    $('bar' + k).style.width = p.hp + '%';
+    $('hp' + k).textContent = p.hp;
+    $('card' + k).classList.toggle('active', turn === i && phase !== 'over');
+  });
+  $('turnText').textContent = phase === 'over' ? '게임 끝!' : phase === 'menu' ? '설정 중' :
+    phase === 'ai' ? 'AI 조준 중…' : turnLabel(turn);
+  $('turnText').style.color = CSS_COLORS[turn];
+  const max = CFG.wind[settings.wind].max;
+  $('windArrow').style.transform = `rotate(${wind.angle * 180 / Math.PI}deg)`;
+  $('windArrow').style.opacity = wind.str ? 1 : 0.2;
+  $('windText').textContent = windLabel();
+  $('windDots').textContent = '●'.repeat(wind.str) + '○'.repeat(Math.max(0, max - wind.str));
+}
+
+function banner(big, small, color) {
+  const b = $('banner');
+  b.querySelector('.big').textContent = big;
+  b.querySelector('.big').style.color = color;
+  b.querySelector('.small').textContent = small;
+  b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  return wait(1250);
+}
+
+function floater(p, text, color, small = false, y = 1.3) {
+  const el = document.createElement('div');
+  el.className = 'floater' + (small ? ' small' : '');
+  el.innerHTML = `<span style="color:${color}">${text}</span>`;
+  $('floaters').appendChild(el);
+  floaters.push({ el, pos: new THREE.Vector3(p.x, y, p.z), t0: performance.now() });
+}
+
+// ================= 물감 자국 =================
+function splatMesh(tex, color, opacity = 1) {
+  const s = 2 * HIT_CORE / 0.45;   // 자국 크기 = 폭탄 크기
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(s, s), new THREE.MeshBasicMaterial({
+    map: tex, color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide,
+  }));
+  m.rotation.x = -Math.PI / 2;
+  m.renderOrder = markOrder++;
+  return m;
+}
+function addMark(p, tex, color, mirrored = false, opacity = 1) {
+  const m = splatMesh(tex, color, opacity);
+  m.position.set(p.x, 0.015, p.z);
+  const sx = mirrored && axis === 'v' ? -1 : 1, sy = mirrored && axis === 'h' ? -1 : 1;
+  tween(260, k => m.scale.set(sx * (0.3 + 0.7 * k), sy * (0.3 + 0.7 * k), 1), ease.outBack);
+  m.scale.set(0.3 * sx, 0.3 * sy, 1);
+  scene.add(m); marks.push(m);
+  while (marks.length > MAX_MARKS) {
+    const old = marks.shift();
+    scene.remove(old); old.geometry.dispose(); old.material.dispose();
+  }
+  return m;
+}
+
+// ================= 캐릭터 움직임 =================
+async function dropIn(ch, delay) {
+  await wait(delay);
+  await tween(550, k => { ch.hopY = 9 * (1 - k); }, ease.inQuad);
+  ch.hopY = 0; sfx.hop();
+  await tween(450, k => { ch.sq = 1 + 0.35 * Math.sin(k * Math.PI * 3) * (1 - k) - 0.3 * (1 - k); });
+  ch.sq = 1;
+}
+
+async function hopTo(ch, to) {
+  const from = { ...ch.pos };
+  ch.faceTarget = Math.atan2(to.x - from.x, to.z - from.z);
+  await tween(160, k => { ch.sq = 1 - 0.25 * k; });
+  await tween(620, k => {
+    ch.pos.x = from.x + (to.x - from.x) * k;
+    ch.pos.z = from.z + (to.z - from.z) * k;
+    ch.hopY = Math.sin(k * Math.PI) * 1.4;
+    ch.sq = 0.75 + 0.4 * Math.sin(Math.min(1, k * 3) * Math.PI / 2) - 0.15 * k;
+  });
+  ch.pos = { ...to }; ch.hopY = 0;
+  await tween(380, k => { ch.sq = 1 + 0.3 * Math.sin(k * Math.PI * 3) * (1 - k) - 0.25 * (1 - k); });
+  ch.sq = 1;
+}
+
+function hurt(ch) { ch.hurtT = performance.now(); }
+
+// 접힌 종이의 높이만큼 상대 쪽 캐릭터를 납작하게
+function squashFromSheet(th, z) {
+  const a = Math.PI - th, L = axis === 'v' ? BW / 2 : BD / 2;
+  for (const ch of players) {
+    if (ch.zone === z || ch.flat) continue;
+    const d = distToHinge(ch.pos);
+    let s = 1;
+    if (a < Math.PI / 2 && d <= L * Math.cos(a) + 0.5) s = clamp((d * Math.tan(a)) / 2.05, 0.14, 1);
+    ch.sq = s;
+  }
+}
+
+// ================= 발사 → 비행 → 접기 → 찍기 =================
+async function flyBall(me, S, aim, drift, d) {
+  const color = COLORS[me.zone];
+  const ball = addT(outline(mesh(new THREE.SphereGeometry(0.17, 16, 12), toon(color)), 0.03));
+  const dur = 450 + d * 70, arcH = 0.8 + d * 0.22;
+  let lastDrop = 0;
+  await tween(dur, k => {
+    ball.position.set(
+      S.x + (aim.x - S.x) * k + drift.x * k * k,
+      S.y * (1 - k) + arcH * 4 * k * (1 - k),
+      S.z + (aim.z - S.z) * k + drift.z * k * k);
+    const now = performance.now();
+    if (now - lastDrop > 35) {
+      lastDrop = now;
+      const dm = addT(new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshBasicMaterial({ color })));
+      dm.position.copy(ball.position);
+      drops.push({ m: dm, t0: now });
+    }
+  });
+  remT(ball);
+}
+
+// 발사 결과를 미리 계산 (착탄점·데미지). 온라인에선 쏜 쪽이 계산해 보내고 받는 쪽은 그대로 씀
+// → 브라우저마다 소수점 계산이 미세하게 달라도 판정이 어긋나지 않음
+function computeShot(me, foe, aim) {
+  const S = gunTip(me, Math.atan2(aim.x - me.pos.x, aim.z - me.pos.z));
+  const d = Math.hypot(aim.x - S.x, aim.z - S.z);
+  const wv = windVec();
+  const land = { x: aim.x + wv.x * DRIFT * d, z: aim.z + wv.z * DRIFT * d };
+  const out = !inZone(land, me.zone);
+  const mir = mirror(land);
+  const dist = Math.hypot(mir.x - foe.pos.x, mir.z - foe.pos.z);
+  const dmg = out ? 0 : dist <= HIT_CORE ? DMG_CORE : dist <= HIT_EDGE ? DMG_EDGE : 0;
+  return { aim: { x: aim.x, z: aim.z }, pos: { ...me.pos }, land, out, dist, dmg };
+}
+
+// 내 화면에서 발사 (사람 차례)
+function shoot(aim) {
+  const shot = computeShot(players[turn], players[1 - turn], aim);
+  if (isOnline()) netSend({ t: 'fire', shot });
+  fire(shot);
+}
+
+async function fire(shot) {
+  const id = game;
+  phase = 'flight';
+  const me = players[turn], foe = players[1 - turn];
+  const { aim, land } = shot;
+  me.faceTarget = Math.atan2(aim.x - me.pos.x, aim.z - me.pos.z);
+  const S = gunTip(me);
+  const d = Math.hypot(aim.x - S.x, aim.z - S.z);
+  aiAim = null; remoteAim = null;
+  const drift = { x: land.x - aim.x, z: land.z - aim.z };
+
+  sfx.shoot();
+  tween(220, k => { me.sq = 0.82 + 0.18 * k; }, ease.outBack);
+  await flyBall(me, S, aim, drift, d);
+  if (id !== game) return;
+
+  const tex = splatTexture();
+  const color = COLORS[turn];
+  sfx.splat();
+
+  if (shot.out) {
+    if (Math.abs(land.x) <= BW / 2 && Math.abs(land.z) <= BD / 2) addMark(land, tex, 0x999999, false, 0.6);
+    floater(land, '장외! 무효', '#fff');
+    sfx.miss();
+    await wait(1300);
+    if (id !== game) return;
+    return nextTurn(id);
+  }
+
+  addMark(land, tex, color);
+  await wait(350);
+  if (id !== game) return;
+
+  // ---- 접기: 쏜 쪽 구역의 투명 필름이 접는 선을 축으로 넘어감 ----
+  phase = 'fold';
+  const z = turn;
+  const pivot = addT(new THREE.Group());
+  pivot.position.y = 0.08;
+  const w = axis === 'v' ? BW / 2 : BW, h = axis === 'v' ? BD : BD / 2;
+  const sheet = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false,
+  }));
+  sheet.rotation.x = -Math.PI / 2; sheet.castShadow = true;
+  if (axis === 'v') sheet.position.set(z ? BW / 4 : -BW / 4, -0.05, 0);
+  else sheet.position.set(0, -0.05, z ? BD / 4 : -BD / 4);
+  sheet.add(new THREE.LineSegments(new THREE.EdgesGeometry(sheet.geometry),
+    new THREE.LineBasicMaterial({ color: 0x2b2b2b })));
+  pivot.add(sheet);
+  const wet = splatMesh(tex, color);
+  wet.position.set(land.x, -0.035, land.z);
+  wet.renderOrder = 1e6;
+  pivot.add(wet);
+
+  const setAngle = th => {
+    if (axis === 'v') pivot.rotation.z = z === 0 ? -th : th;
+    else pivot.rotation.x = z === 0 ? th : -th;
+    squashFromSheet(th, z);
+  };
+
+  sfx.whoosh();
+  await tween(720, k => setAngle(k * Math.PI), ease.inCubic);
+  if (id !== game) return;
+
+  // ---- 찍기 ----
+  const mir = mirror(land);
+  sfx.stamp();
+  shake = 0.35;
+  addMark(mir, tex, color, true);
+  const { dist, dmg } = shot;
+  if (dmg) {
+    foe.hp = Math.max(0, foe.hp - dmg);
+    hurt(foe); sfx.hit();
+    floater(foe.pos, dmg === DMG_CORE ? `정타! -${dmg}` : `스침 -${dmg}`, dmg === DMG_CORE ? '#ffdd33' : '#fff', false, 3.2);
+    if (foe.hp <= 0) foe.flat = true;
+  } else {
+    sfx.miss();
+    floater(mir, `빗나감 · ${dist.toFixed(1)}m`, '#fff', true);
+  }
+  updateHud();
+
+  await wait(300);
+  if (id !== game) return;
+  await tween(620, k => setAngle((1 - k) * Math.PI), ease.outCubic);
+  if (id !== game) return;
+  remT(pivot);
+
+  // 눌렸던 캐릭터가 뿅 하고 복원
+  for (const ch of players) {
+    if (ch.zone === z || ch.flat) continue;
+    sfx.boing();
+    tween(500, k => { ch.sq = 1 + 0.28 * Math.sin(k * Math.PI * 3) * (1 - k); });
+  }
+  await wait(550);
+  if (id !== game) return;
+
+  if (foe.hp <= 0) return gameOver(turn);
+  nextTurn(id);
+}
+
+function nextTurn(id) {
+  turn = 1 - turn;
+  beginTurn(id, true);
+}
+
+async function beginTurn(id, relocate) {
+  phase = 'relocate';
+  players.forEach(p => { p.ring.visible = false; });
+  // 물감 자국: 턴마다 35%로 흐려지고, 충분히 옅어지면 사라짐 (약 2턴 뒤 소멸)
+  for (const m of [...marks]) {
+    const from = m.material.opacity, to = from * 0.35 < 0.1 ? 0 : from * 0.35;
+    tween(500, k => { m.material.opacity = from + (to - from) * k; }).then(() => {
+      if (to > 0 || !marks.includes(m)) return;
+      marks.splice(marks.indexOf(m), 1);
+      scene.remove(m); m.geometry.dispose(); m.material.dispose();
+    });
+  }
+  updateHud();
+  // 이번 턴의 랜덤 요소(자동 이동 자리, 바람). 온라인에선 방장이 정해서 보내고 참가자는 받아서 씀
+  let spots = null, nextWind;
+  if (isOnline() && !net.host) {
+    const m = await netWait('turn');
+    if (id !== game) return;
+    spots = m.spots; nextWind = m.wind;
+  } else {
+    if (relocate && settings.move === 'auto') spots = players.map(p => randomSpot(p.zone, p.pos));
+    nextWind = rollWind({});
+    if (isOnline()) netSend({ t: 'turn', spots, wind: nextWind });
+  }
+  if (spots) {
+    sfx.hop();
+    await Promise.all(players.map((p, i) => hopTo(p, spots[i])));
+    if (id !== game) return;
+  }
+  Object.assign(wind, nextWind);
+  updateHud();
+  const windTxt = wind.str ? `바람 ${wind.str}단계` : '바람 없음';
+  const steps = settings.move === 'manual' && !isAI(turn) && !isRemote(turn);
+  await banner(`${turnLabel(turn)}!`, steps ? `캐릭터 끌기 = 이동 · 빈 곳 클릭 = 발사 · ${windTxt}` : windTxt, CSS_COLORS[turn]);
+  if (id !== game) return;
+  const me = players[turn];
+  me.ring.visible = true;
+  me.moveFrom = { ...me.pos };     // 이번 턴 이동 기준점
+  if (isAI(turn)) return aiTurn(id);
+  if (isRemote(turn)) return remoteTurn(id);
+  phase = 'aim';
+  updateHud();
+}
+
+// 온라인: 친구 차례 — 친구가 끄는 위치·조준점을 실시간으로 보여주다가 발사 메시지를 받으면 똑같이 재생
+async function remoteTurn(id) {
+  phase = 'remote';
+  remoteAim = null;
+  updateHud();
+  const m = await netWait('fire');
+  if (id !== game) return;
+  const me = players[turn];
+  me.netPos = null;
+  me.pos = { ...m.shot.pos };
+  fire(m.shot);
+}
+
+// ================= 직접 이동 =================
+// 발사 차례 안에서: 내 캐릭터를 끌면 이동, 빈 곳을 클릭하면 발사 (버튼 없음)
+const moveR = () => CFG.map[settings.map].move;
+const canMove = () => settings.move === 'manual' && phase === 'aim' && !isAI(turn) && !isRemote(turn);
+let hoverChar = false;   // 마우스가 내 캐릭터 위 → 이동 범위 미리 보여주고 조준점은 숨김
+
+// 캐릭터가 설 수 있는 자리: 접는 선에서 1.1m, 판 가장자리에서 0.9m 떨어진 내 구역 안
+const clampSpot = (p, z) => clampToZone(p, z, 1.1, 0.9);
+
+// 이동 기준점에서 반경 이내 + 설 수 있는 자리로 제한
+function clampMove(ch, p) {
+  const o = ch.moveFrom;
+  let dx = p.x - o.x, dz = p.z - o.z;
+  const d = Math.hypot(dx, dz), R = moveR();
+  if (d > R) { dx *= R / d; dz *= R / d; }
+  return clampSpot({ x: o.x + dx, z: o.z + dz }, ch.zone);
+}
+
+// 이동 가능 범위 표시 (원판 + 테두리)
+const moveArea = new THREE.Group();
+// 실제로 설 수 있는 영역만 보이도록 4개 평면으로 잘라냄 (접는 선 쪽 1.1m, 가장자리 0.9m)
+const moveClip = [0, 1, 2, 3].map(() => new THREE.Plane());
+renderer.localClippingEnabled = true;
+const moveDiscMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.1, depthWrite: false, clippingPlanes: moveClip });
+const moveEdgeMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.6, depthWrite: false, clippingPlanes: moveClip });
+const moveDisc = new THREE.Mesh(new THREE.CircleGeometry(1, 64), moveDiscMat);
+const moveEdge = new THREE.Mesh(new THREE.RingGeometry(0.985, 1, 64), moveEdgeMat);
+for (const m of [moveDisc, moveEdge]) { m.rotation.x = -Math.PI / 2; moveArea.add(m); }
+moveArea.position.y = 0.008;
+moveArea.visible = false;
+scene.add(moveArea);
+
+function updateMoveArea() {
+  const me = players[turn];
+  const show = !!me && me.moveFrom && canMove() && (!!dragging || hoverChar);
+  moveArea.visible = show;
+  if (!show) return;
+  moveArea.position.x = me.moveFrom.x; moveArea.position.z = me.moveFrom.z;
+  moveArea.scale.set(moveR(), 1, moveR());   // 눕힌 원판이라 바닥면(x, z)으로 키움
+  moveDiscMat.color.setHex(COLORS[turn]); moveEdgeMat.color.setHex(COLORS[turn]);
+  const hx = BW / 2 - 0.9, hz = BD / 2 - 0.9, sgn = turn === 0 ? -1 : 1;
+  if (axis === 'v') {
+    moveClip[0].set(new THREE.Vector3(sgn, 0, 0), -1.1);     // 접는 선에서 1.1m
+    moveClip[1].set(new THREE.Vector3(-sgn, 0, 0), hx);      // 바깥 가장자리
+    moveClip[2].set(new THREE.Vector3(0, 0, 1), hz);
+    moveClip[3].set(new THREE.Vector3(0, 0, -1), hz);
+  } else {
+    moveClip[0].set(new THREE.Vector3(0, 0, sgn), -1.1);
+    moveClip[1].set(new THREE.Vector3(0, 0, -sgn), hz);
+    moveClip[2].set(new THREE.Vector3(1, 0, 0), hx);
+    moveClip[3].set(new THREE.Vector3(-1, 0, 0), hx);
+  }
+}
+
+// ================= AI =================
+const gauss = () => {
+  let u = 0; while (!u) u = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random());
+};
+
+// m = 접는 선에서 띄울 거리, e = 판 가장자리에서 띄울 거리
+function clampToZone(p, z, m = 0.25, e = 0.2) {
+  const hx = BW / 2 - e, hz = BD / 2 - e;
+  let { x, z: pz } = p;
+  if (axis === 'v') { x = z === 0 ? clamp(x, -hx, -m) : clamp(x, m, hx); pz = clamp(pz, -hz, hz); }
+  else { pz = z === 0 ? clamp(pz, -hz, -m) : clamp(pz, m, hz); x = clamp(x, -hx, hx); }
+  return { x, z: pz };
+}
+
+// AI 조준: ① 상대의 대칭 위치 ② 바람 보정(실력만큼) ③ 사람 같은 눈대중 오차
+function aiPlan(me, foe) {
+  const skill = CFG.ai[settings.ai];
+  const target = mirror(foe.pos);
+  const wv = windVec();
+  let aim = { ...target };
+  for (let i = 0; i < 6; i++) {
+    const S = gunTip(me, Math.atan2(aim.x - me.pos.x, aim.z - me.pos.z));
+    const d = Math.hypot(aim.x - S.x, aim.z - S.z);
+    aim = { x: target.x - wv.x * DRIFT * d * skill.comp, z: target.z - wv.z * DRIFT * d * skill.comp };
+  }
+  // 접는 선에서 먼 목표일수록 대칭 가늠이 어려움
+  const span = axis === 'v' ? BW / 2 : BD / 2;
+  const sigma = skill.sigma * (0.6 + 0.8 * distToHinge(target) / span);
+  aim.x += gauss() * sigma;
+  aim.z += gauss() * sigma;
+  return clampToZone(aim, me.zone);
+}
+
+// AI 자리 잡기 (직접 이동 모드): 내 사격 거리 = 상대 사격 거리이므로
+// 실력이 좋을수록 먼 거리(서로 어려운 싸움)를, 약할수록 가까운 거리를 선호
+function aiChooseSpot(me, foe) {
+  const skill = CFG.ai[settings.ai], R = moveR();
+  let best = me.pos, bestScore = -Infinity;
+  for (let i = 0; i < 40; i++) {
+    const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * R;
+    const c = clampMove(me, { x: me.moveFrom.x + Math.cos(a) * r, z: me.moveFrom.z + Math.sin(a) * r });
+    const m = mirror(c), d = Math.hypot(m.x - foe.pos.x, m.z - foe.pos.z);
+    const score = -Math.abs(d - skill.pref) + rand(-0.8, 0.8);
+    if (score > bestScore) { bestScore = score; best = c; }
+  }
+  return best;
+}
+
+let aiAim = null, remoteAim = null;
+async function aiTurn(id) {
+  phase = 'ai';
+  updateHud();
+  while (menuOpen) { await wait(150); if (id !== game) return; }
+  const me = players[turn], foe = players[1 - turn];
+  if (settings.move === 'manual') {
+    await wait(300);
+    const spot = aiChooseSpot(me, foe);
+    if (Math.hypot(spot.x - me.pos.x, spot.z - me.pos.z) > 0.3) {
+      sfx.hop();
+      await hopTo(me, spot);
+      if (id !== game) return;
+    }
+  }
+  const plan = aiPlan(me, foe);
+  // 조준점이 이리저리 흔들리다 목표로 수렴 (고민하는 연출)
+  const from = clampToZone({
+    x: (me.pos.x + plan.x) / 2 + rand(-1.5, 1.5), z: (me.pos.z + plan.z) / 2 + rand(-1.5, 1.5),
+  }, me.zone);
+  const p1 = rand(0, 6), p2 = rand(0, 6);
+  await tween(rand(1100, 1800), k => {
+    const w = (1 - k) * 0.6;
+    aiAim = clampToZone({
+      x: from.x + (plan.x - from.x) * k + Math.sin(k * 9 + p1) * w,
+      z: from.z + (plan.z - from.z) * k + Math.cos(k * 7 + p2) * w,
+    }, me.zone);
+  }, ease.outCubic);
+  if (id !== game) return;
+  aiAim = { ...plan };
+  await wait(350);
+  if (id !== game) return;
+  fire(computeShot(me, foe, plan));
+}
+
+function gameOver(w) {
+  phase = 'over';
+  turn = w;
+  players.forEach(p => { p.ring.visible = false; });
+  players[w].winner = true;
+  sfx.win();
+  const c = players[w].pos;
+  for (let i = 0; i < 160; i++) {
+    const m = addT(new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.22), new THREE.MeshBasicMaterial({
+      color: new THREE.Color().setHSL(Math.random(), 0.85, 0.6), side: THREE.DoubleSide,
+    })));
+    m.position.set(c.x + rand(-0.5, 0.5), 2.5, c.z + rand(-0.5, 0.5));
+    m.userData = {
+      v: new THREE.Vector3(rand(-4, 4), rand(5, 10), rand(-4, 4)),
+      r: new THREE.Vector3(rand(-9, 9), rand(-9, 9), rand(-9, 9)), t0: performance.now(),
+    };
+    confetti.push(m);
+  }
+  updateHud();
+  setTimeout(() => {
+    if (phase !== 'over') return;
+    $('overText').textContent = isOnline() ? (w === net.me ? '승리!' : '패배…')
+      : settings.opp !== 'ai' ? `${NAMES[w]} 승리!` : w === 0 ? '승리!' : 'AI 승리…';
+    $('overText').style.color = CSS_COLORS[w];
+    $('over').hidden = false;
+  }, 1400);
+}
+
+function clearWorld() {
+  tweens.length = 0;
+  for (const o of transient) scene.remove(o);
+  transient.clear();
+  players.forEach(p => scene.remove(p.root));
+  marks.forEach(m => scene.remove(m));
+  marks = []; drops = []; confetti = [];
+  floaters.forEach(f => f.el.remove()); floaters = [];
+  $('over').hidden = true;
+  $('banner').classList.remove('show');
+}
+
+// 설정값을 판/판정/카메라에 반영
+function applySettings() {
+  ({ w: BW, d: BD } = CFG.map[settings.map]);
+  ({ core: HIT_CORE, edge: HIT_EDGE } = CFG.bomb[settings.bomb]);
+  axis = settings.axis;
+  windsock.root.position.z = -BD / 2 - 1.4;
+  ringMesh.geometry.dispose();
+  ringMesh.geometry = new THREE.RingGeometry(HIT_CORE - 0.08, HIT_CORE, 40);
+  ticks.forEach((t, i) => {
+    const a = i * Math.PI / 2;
+    t.position.set(Math.cos(a) * (HIT_CORE + 0.12), 0, Math.sin(a) * (HIT_CORE + 0.12));
+  });
+  fitCamera();
+}
+
+// start = 온라인 참가자가 방장에게 받은 시작 정보 { s: 판 설정, pos: 시작 위치 }
+async function newGame(start) {
+  const id = ++game;
+  netResetInbox();
+  clearWorld();
+  if (start) Object.assign(settings, start.s, { opp: 'online' });
+  applySettings();
+  aiAim = null; remoteAim = null;
+  buildBoard();
+  dragging = null;
+  $('help').textContent = settings.move === 'manual'
+    ? '내 캐릭터를 끌면 이동(원 안), 내 구역 빈 곳을 클릭하면 발사! 이동은 안 해도 돼요. 멀리 쏠수록 바람을 더 타요.'
+    : '내 구역을 클릭해서 물감총 발사! 바람에 밀린 자리가 접혀서 상대 구역에 찍혀요. 멀리 쏠수록 바람을 더 타요.';
+  players = [makeChar(0), makeChar(1)];
+  players.forEach(p => { p.pos = start ? { ...start.pos[p.zone] } : randomSpot(p.zone); p.hopY = 9; });
+  if (isOnline() && net.host) {
+    const { bomb, wind: w, map, axis: ax, move } = settings;
+    netSend({ t: 'start', s: { bomb, wind: w, map, axis: ax, move }, pos: players.map(p => p.pos) });
+  }
+  turn = 0; wind.str = 0; phase = 'intro';
+  updateHud();
+  await Promise.all(players.map((p, i) => dropIn(p, 200 + i * 220)));
+  if (id !== game) return;
+  beginTurn(id, false);
+}
+
+// ================= 조준 =================
+const aimGroup = new THREE.Group();
+scene.add(aimGroup);
+const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false });
+const reticle = new THREE.Group();
+const ringMesh = new THREE.Mesh(new THREE.RingGeometry(HIT_CORE - 0.08, HIT_CORE, 40), reticleMat);
+ringMesh.rotation.x = -Math.PI / 2; reticle.add(ringMesh);
+const ticks = [];
+for (let i = 0; i < 4; i++) {
+  const t = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 0.22), reticleMat);
+  t.rotation.x = -Math.PI / 2;
+  const a = i * Math.PI / 2;
+  t.position.set(Math.cos(a) * (HIT_CORE + 0.12), 0, Math.sin(a) * (HIT_CORE + 0.12));
+  t.rotation.z = a + Math.PI / 2;
+  reticle.add(t); ticks.push(t);
+}
+const dotMesh = new THREE.Mesh(new THREE.CircleGeometry(0.06, 16), reticleMat);
+dotMesh.rotation.x = -Math.PI / 2; reticle.add(dotMesh);
+aimGroup.add(reticle);
+
+const ARC_N = 32;
+const arcGeo = new THREE.BufferGeometry();
+arcGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array((ARC_N + 1) * 3), 3));
+const arcLine = new THREE.Line(arcGeo, new THREE.LineDashedMaterial({
+  color: 0x2b2b2b, dashSize: 0.22, gapSize: 0.16, transparent: true, opacity: 0.75,
+}));
+aimGroup.add(arcLine);
+aimGroup.visible = false;
+
+let aim = null, pressing = false;
+const raycaster = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hitV = new THREE.Vector3();
+
+function pointerToGround(e) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(ndc, camBaseCam);
+  return raycaster.ray.intersectPlane(groundPlane, hitV) ? { x: hitV.x, z: hitV.z } : null;
+}
+
+function updateAim(now) {
+  const me = players[turn];
+  const a = phase === 'aim' && !dragging && !hoverChar ? aim : phase === 'ai' ? aiAim : phase === 'remote' ? remoteAim : null;
+  const ok = a && me && inZone(a, turn);
+  aimGroup.visible = !!ok;
+  if (!ok) return;
+  me.faceTarget = Math.atan2(a.x - me.pos.x, a.z - me.pos.z);
+  reticleMat.color.setHex(COLORS[turn]);
+  reticle.position.set(a.x, 0.03, a.z);
+  reticle.rotation.y = now * 0.0015;
+  const S = gunTip(me), d = Math.hypot(a.x - S.x, a.z - S.z), arcH = 0.8 + d * 0.22;
+  const pos = arcGeo.attributes.position;
+  for (let i = 0; i <= ARC_N; i++) {
+    const k = i / ARC_N;
+    pos.setXYZ(i, S.x + (a.x - S.x) * k, S.y * (1 - k) + arcH * 4 * k * (1 - k), S.z + (a.z - S.z) * k);
+  }
+  pos.needsUpdate = true;
+  arcGeo.computeBoundingSphere();
+  arcLine.computeLineDistances();
+}
+
+// 내 캐릭터를 눌렀는지: 몸통에 맞았거나 발밑 근처
+let dragging = null;   // { off } = 잡은 지점과 캐릭터 발 위치의 차이
+function onOwnChar(e) {
+  const me = players[turn];
+  if (!me) return false;
+  const g = pointerToGround(e);   // raycaster도 이 포인터로 맞춰짐
+  if (raycaster.intersectObject(me.rig, true).length) return true;
+  return !!g && Math.hypot(g.x - me.pos.x, g.z - me.pos.z) < 0.8;
+}
+
+canvas.addEventListener('pointermove', e => {
+  aim = pointerToGround(e);
+  if (dragging) {
+    const me = players[turn];
+    if (aim) me.pos = clampMove(me, { x: aim.x + dragging.off.x, z: aim.z + dragging.off.z });
+  } else {
+    hoverChar = canMove() && onOwnChar(e);
+    canvas.style.cursor = hoverChar ? 'grab' : 'crosshair';
+  }
+});
+canvas.addEventListener('pointerdown', e => {
+  sfx.unlock();
+  aim = pointerToGround(e);
+  canvas.setPointerCapture(e.pointerId);
+  if (canMove() && aim && onOwnChar(e)) {
+    // 캐릭터를 잡으면 끌어서 이동 (놓으면 끝, 바로 발사 가능)
+    const me = players[turn];
+    dragging = { off: { x: me.pos.x - aim.x, z: me.pos.z - aim.z } };
+    me.hopY = 0.35; me.sq = 1.08;
+    canvas.style.cursor = 'grabbing';
+    sfx.hop();
+    return;
+  }
+  pressing = true;
+});
+canvas.addEventListener('pointerup', e => {
+  aim = pointerToGround(e);
+  if (dragging) {
+    const me = players[turn];
+    dragging = null;
+    tween(320, k => { me.hopY = 0.35 * (1 - k); me.sq = 1 - 0.2 * Math.sin(k * Math.PI); });
+    canvas.style.cursor = 'grab';
+    if (isOnline()) netSend({ t: 'move', p: { ...me.pos } });   // 최종 위치는 바로 전송
+    return;
+  }
+  if (pressing && phase === 'aim' && aim && inZone(aim, turn)) shoot({ ...aim });
+  pressing = false;
+});
+canvas.addEventListener('pointerleave', () => { if (!pressing) aim = null; hoverChar = false; });
+
+// ================= 카메라 =================
+const VIEWS = {
+  tilt: { pos: new THREE.Vector3(0, 12.5, 11.5), look: new THREE.Vector3(0, 0, 0.4) },
+  top: { pos: new THREE.Vector3(0, 19, 0.001), look: new THREE.Vector3(0, 0, 0) },
+};
+const camBaseCam = camera.clone();
+function fitCamera() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  const v = VIEWS[view];
+  const dir = v.pos.clone().sub(v.look);
+  const t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  // 기울여 보기에선 판 앞쪽 가장자리가 가까워 더 넓게 보이므로 판 깊이만큼 여유를 더 줌
+  const nearWiden = view === 'tilt' ? 1 + BD * 0.022 : 1;
+  const needW = (BW + 2.5) * nearWiden / (2 * t * camera.aspect);
+  const needH = (view === 'top' ? BD + 7 : BD * 0.8 + 5) / (2 * t);
+  const D = Math.max(dir.length(), needW, needH);
+  camera.position.copy(v.look).addScaledVector(dir.normalize(), D);
+  camera.lookAt(v.look);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld(true);
+  camBaseCam.copy(camera);
+}
+addEventListener('resize', fitCamera);
+
+// ================= 버튼 =================
+// 온라인: 판을 새로 까는 건 방장만. 참가자는 방장에게 요청
+function restart() {
+  sfx.unlock();
+  if (!isOnline()) return newGame();
+  if (!net.conn) return openMenu();          // 친구가 나간 상태 → 설정 화면에서 다시 연결
+  if (net.host) newGame(); else netSend({ t: 'again' });
+}
+$('restartBtn').onclick = restart;
+$('againBtn').onclick = restart;
+
+// ================= 온라인 대전 (PeerJS) =================
+// 방 코드 = PeerJS 아이디 뒷부분. 방장 브라우저가 이 아이디로 등록하고, 참가자가 이 아이디로 접속
+const PEER_PREFIX = 'decalcomanie-v1-';
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const makeCode = () => Array.from({ length: 5 }, () => CODE_CHARS[Math.random() * CODE_CHARS.length | 0]).join('');
+
+let inbox = [], waiters = [];
+function netResetInbox() { inbox = []; waiters = []; }   // 이전 판을 기다리던 흐름은 그대로 버려짐
+function netWait(t) {
+  const i = inbox.findIndex(m => m.t === t);
+  if (i >= 0) return Promise.resolve(inbox.splice(i, 1)[0]);
+  return new Promise(r => waiters.push({ t, r }));
+}
+function netSend(m) { if (net.conn?.open) net.conn.send(m); }
+
+function netStatus(text, err = false) {
+  $('netStatus').textContent = text;
+  $('netStatus').classList.toggle('err', err);
+}
+function showLink(code) {
+  $('linkRow').hidden = !code;
+  if (code) $('linkIn').value = `${location.origin}${location.pathname}?room=${code}`;
+}
+
+function netClose() {
+  const peer = net.peer;
+  net.peer = net.conn = null; net.code = '';
+  if (peer) peer.destroy();
+  showLink('');
+}
+
+function peerReady() {
+  if (typeof Peer !== 'undefined') return true;
+  netStatus('온라인 모듈을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.', true);
+  return false;
+}
+
+function netHost(tries = 0) {
+  if (!peerReady()) return;
+  netClose();
+  const code = makeCode();
+  const peer = net.peer = new Peer(PEER_PREFIX + code);
+  netStatus('방 만드는 중…');
+  peer.on('open', () => {
+    if (net.peer !== peer) return;
+    net.code = code; net.host = true; net.me = 0;
+    $('codeIn').value = code;
+    showLink(code);
+    netStatus(`방 코드 ${code} · 링크를 친구에게 보내고 기다려 주세요`);
+  });
+  peer.on('connection', c => {
+    if (net.peer !== peer || net.conn) { c.on('open', () => c.close()); return; }  // 이미 대전 중이면 거절
+    bindConn(c);
+  });
+  peer.on('error', e => {
+    if (net.peer !== peer) return;
+    if (e.type === 'unavailable-id' && tries < 3) return netHost(tries + 1);   // 코드가 겹치면 새로 뽑기
+    netStatus(`연결 오류 (${e.type})`, true);
+  });
+}
+
+function netJoin(code) {
+  code = code.trim().toUpperCase();
+  if (!code) return netStatus('방 코드를 입력해 주세요', true);
+  if (!peerReady()) return;
+  netClose();
+  const peer = net.peer = new Peer();
+  net.host = false; net.me = 1;
+  netStatus(`방 ${code}에 연결 중…`);
+  peer.on('open', () => {
+    if (net.peer !== peer) return;
+    bindConn(peer.connect(PEER_PREFIX + code, { reliable: true }));
+  });
+  peer.on('error', e => {
+    if (net.peer !== peer) return;
+    netStatus(e.type === 'peer-unavailable' ? '방을 찾을 수 없어요. 코드를 확인하거나 방장에게 새 링크를 받아 주세요'
+      : `연결 오류 (${e.type})`, true);
+  });
+}
+
+function bindConn(c) {
+  c.on('open', () => {
+    net.conn = c;
+    if (net.host) {
+      netStatus('친구가 들어왔어요! 시작합니다');
+      // 설정 화면에서 고르던 판 설정으로 시작
+      if (menuOpen) Object.assign(settings, draft);
+      settings.opp = 'online';
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+      closeMenu();
+      newGame();
+    } else netStatus('연결됐어요! 방장이 판을 까는 중…');
+  });
+  c.on('data', onNet);
+  c.on('close', () => onNetClose(c));
+  c.on('error', () => onNetClose(c));
+}
+
+function onNet(m) {
+  if (!m || typeof m !== 'object') return;
+  switch (m.t) {
+    case 'start':                               // 참가자: 방장이 새 판을 깔았음
+      if (net.host) return;
+      closeMenu();
+      newGame(m);
+      break;
+    case 'again':                               // 방장: 참가자가 한 판 더 요청
+      if (net.host) newGame();
+      break;
+    case 'move':                                // 친구가 캐릭터를 끄는 중
+      if (phase === 'remote') players[turn].netPos = m.p;
+      break;
+    case 'aim':                                 // 친구의 조준점
+      if (phase === 'remote') remoteAim = m.p;
+      break;
+    case 'bye':                                 // 친구가 창을 닫음 (WebRTC 끊김 감지는 몇 초 걸려서 먼저 알려줌)
+      if (net.conn) { const c = net.conn; onNetClose(c); c.close(); }
+      break;
+    case 'turn': case 'fire': {
+      const i = waiters.findIndex(w => w.t === m.t);
+      if (i >= 0) waiters.splice(i, 1)[0].r(m); else inbox.push(m);
+      break;
+    }
+  }
+}
+
+function onNetClose(c) {
+  if (net.conn !== c) return;
+  net.conn = null;
+  if (!isOnline()) return;
+  if (phase !== 'over' && phase !== 'menu') {    // 승부가 이미 났으면 결과 화면은 그대로 둠
+    game++;                                      // 진행 중이던 턴 흐름 중단
+    phase = 'over';
+    players.forEach(p => { p.ring.visible = false; });
+    updateHud();
+    $('overText').textContent = '친구와 연결이 끊겼어요';
+    $('overText').style.color = 'var(--ink)';
+    $('over').hidden = menuOpen;
+  }
+  $('turnText').textContent = '연결 끊김';
+  netStatus(net.host && net.peer ? `친구가 나갔어요. 같은 링크로 다시 들어오면 바로 이어서 시작해요 (방 ${net.code})`
+    : '연결이 끊겼어요. 다시 참가해 주세요', !net.host);
+}
+
+// 내 차례에 끄는 위치·조준점을 친구 화면에 실시간 전송 (초당 약 15번, 바뀔 때만)
+let netLastT = 0, netLastKey = '';
+function netTick(now) {
+  if (!isOnline() || !net.conn || phase !== 'aim' || isRemote(turn) || now - netLastT < 66) return;
+  const me = players[turn];
+  const a = !dragging && !hoverChar && aim && inZone(aim, turn) ? { x: +aim.x.toFixed(3), z: +aim.z.toFixed(3) } : null;
+  const m = dragging ? { t: 'move', p: { ...me.pos } } : { t: 'aim', p: a };
+  const key = JSON.stringify(m);
+  if (key === netLastKey) return;
+  netLastT = now; netLastKey = key;
+  netSend(m);
+}
+
+addEventListener('pagehide', () => { netSend({ t: 'bye' }); });
+$('hostBtn').onclick = () => { sfx.unlock(); netHost(); };
+$('joinBtn').onclick = () => { sfx.unlock(); netJoin($('codeIn').value); };
+$('codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('joinBtn').click(); });
+$('copyBtn').onclick = async () => {
+  try { await navigator.clipboard.writeText($('linkIn').value); $('copyBtn').textContent = '복사됨!'; }
+  catch { $('linkIn').select(); document.execCommand('copy'); $('copyBtn').textContent = '복사됨!'; }
+  setTimeout(() => { $('copyBtn').textContent = '복사'; }, 1500);
+};
+
+// ================= 설정 메뉴 =================
+let menuOpen = false;
+let draft = { ...settings };   // 메뉴에서 고치는 사본 — 시작! 때만 반영
+const gameActive = () => players.length > 0 && phase !== 'over' && phase !== 'menu';
+
+function renderMenu() {
+  document.querySelectorAll('#menu .seg[data-key]').forEach(seg => {
+    seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === draft[seg.dataset.key]));
+  });
+  $('aiRow').querySelector('.seg').classList.toggle('disabled', draft.opp !== 'ai');
+  $('aiHint').textContent = draft.opp === 'ai' ? CFG.ai[draft.ai].hint
+    : draft.opp === 'online' ? '방을 만들고 링크를 보내면 친구가 들어오는 순간 시작해요 · 판 설정은 방장 기준'
+    : '한 화면에서 번갈아 쏴요';
+  $('onlineBox').hidden = draft.opp !== 'online';
+  $('startBtn').hidden = draft.opp === 'online';
+  document.querySelectorAll('#presetSeg button').forEach(b => {
+    const q = QUICK[b.dataset.p];
+    b.classList.toggle('on', q.bomb === draft.bomb && q.wind === draft.wind && q.map === draft.map);
+  });
+  const B = CFG.bomb[draft.bomb], Wd = CFG.wind[draft.wind], Mp = CFG.map[draft.map];
+  $('bombHint').textContent = `정타 반경 ${B.core}m · 스침 반경 ${B.edge}m`;
+  $('windHint').textContent = Wd.max ? `매 턴 ${Wd.min}~${Wd.max}단계 · 멀리 쏠수록 더 밀려요` : '바람이 불지 않아요';
+  $('moveHint').textContent = draft.move === 'manual'
+    ? `캐릭터를 끌어서 이동(한 턴 최대 ${Mp.move}m), 빈 곳 클릭으로 발사`
+    : '매 턴 두 캐릭터가 랜덤한 자리로 폴짝 이동해요';
+  $('mapHint').textContent = `${Mp.w} × ${Mp.d}m · 넓을수록 대칭 가늠이 어렵고 바람도 오래 타요`;
+  const score = { big: 0, normal: 1, small: 2 }[draft.bomb] + { off: 0, weak: 1, normal: 2, strong: 3 }[draft.wind]
+    + { small: 0, normal: 1, large: 2 }[draft.map];
+  const stars = 1 + Math.round(score * 4 / 7);
+  $('diffMeter').innerHTML = `판 난이도 <b>${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}</b>`;
+  $('closeMenuBtn').hidden = !gameActive();
+}
+
+function openMenu() {
+  menuOpen = true;
+  draft = { ...settings };
+  $('over').hidden = true;
+  $('menu').hidden = false;
+  renderMenu();
+}
+function closeMenu() {
+  menuOpen = false;
+  $('menu').hidden = true;
+}
+
+$('menu').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const seg = b.closest('.seg');
+  if (seg?.dataset.key) draft[seg.dataset.key] = b.dataset.v;
+  else if (seg?.id === 'presetSeg') Object.assign(draft, QUICK[b.dataset.p]);
+  else return;
+  renderMenu();
+});
+$('startBtn').onclick = () => {
+  sfx.unlock();
+  if (draft.opp === 'online') return;   // 온라인은 친구가 들어오면 자동 시작
+  netClose();
+  Object.assign(settings, draft);
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+  closeMenu();
+  newGame();
+};
+$('closeMenuBtn').onclick = closeMenu;
+$('settingsBtn').onclick = openMenu;
+$('overSettingsBtn').onclick = openMenu;
+$('viewBtn').onclick = () => {
+  view = view === 'tilt' ? 'top' : 'tilt';
+  $('viewBtn').textContent = view === 'tilt' ? '위에서 보기' : '기울여 보기';
+  fitCamera();
+};
+$('soundBtn').onclick = () => {
+  sfx.unlock();
+  $('soundBtn').textContent = sfx.toggle() ? '소리 꺼짐' : '소리 켜짐';
+};
+
+// ================= 매 프레임 =================
+let last = performance.now();
+const tmpV = new THREE.Vector3();
+
+function updateChars(now, dt) {
+  for (const ch of players) {
+    const foe = players[1 - ch.zone];
+    // 온라인: 친구가 끄는 위치를 부드럽게 따라감
+    if (ch.netPos && phase === 'remote' && ch.zone === turn) {
+      const k = 1 - Math.exp(-14 * dt);
+      ch.pos.x += (ch.netPos.x - ch.pos.x) * k;
+      ch.pos.z += (ch.netPos.z - ch.pos.z) * k;
+    }
+    if (!((phase === 'aim' || phase === 'ai' || phase === 'remote') && ch.zone === turn) && phase !== 'flight' && phase !== 'fold' && foe) {
+      const dx = foe.pos.x - ch.pos.x, dz = foe.pos.z - ch.pos.z, l = Math.hypot(dx, dz) || 1;
+      if (phase !== 'relocate') ch.faceTarget = Math.atan2(dx / l, dz / l + 0.9);
+    }
+    ch.rig.rotation.y = lerpAngle(ch.rig.rotation.y, ch.faceTarget, 1 - Math.exp(-10 * dt));
+
+    const breath = ch.flat ? 0 : Math.sin(now * 0.004 + ch.zone * 2) * 0.03;
+    const wide = 1 + (1 - ch.sq) * 0.7;
+    ch.rig.scale.set(wide * (1 - breath * 0.4), ch.sq * (1 + breath), wide * (1 - breath * 0.4));
+
+    let y = ch.hopY, sx = 0;
+    if (ch.winner) y = Math.abs(Math.sin(now * 0.008)) * 0.8;
+    const hk = 1 - (now - ch.hurtT) / 600;
+    if (hk > 0) {
+      sx = Math.sin(now * 0.09) * 0.1 * hk;
+      const f = Math.sin(now * 0.05) > 0 ? hk * 0.9 : 0;
+      ch.mats.forEach(m => m.emissive.setScalar(f));
+    } else ch.mats.forEach(m => m.emissive.setScalar(0));
+    ch.root.position.set(ch.pos.x + sx, y, ch.pos.z);
+
+    if (ch.flat) ch.eyes.scale.y = 0.12;
+    else if (now > ch.blinkAt) {
+      ch.eyes.scale.y = 0.1;
+      if (now > ch.blinkAt + 110) { ch.eyes.scale.y = 1; ch.blinkAt = now + rand(1800, 4500); }
+    }
+    ch.tag.position.y = 0.45 + 2.2 * ch.sq;
+    ch.ring.scale.setScalar(1 + Math.sin(now * 0.006) * 0.08);
+  }
+}
+
+function updateWind(now, dt) {
+  const wv = windVec();
+  const yawTarget = Math.atan2(-Math.sin(wind.angle), Math.cos(wind.angle));
+  windsock.yaw.rotation.y = lerpAngle(windsock.yaw.rotation.y, yawTarget, 1 - Math.exp(-3 * dt));
+  const droop = (1 - wind.str / 5) * 1.25;
+  const wob = Math.sin(now * 0.008 * (1 + wind.str * 0.4)) * 0.03 * (wind.str + 1);
+  windsock.pitch.rotation.z += (-droop + wob - windsock.pitch.rotation.z) * (1 - Math.exp(-4 * dt));
+  windsock.pitch.rotation.x = Math.sin(now * 0.011) * 0.05 * wind.str;
+
+  const op = Math.min(0.75, wind.str * 0.16);
+  for (const s of streaks) {
+    const sp = (1.2 + wind.str * 1.6) * s.userData.speed;
+    s.position.x += wv.x / (wind.str || 1) * sp * dt;
+    s.position.z += wv.z / (wind.str || 1) * sp * dt;
+    if (s.position.x > 12) s.position.x -= 24; if (s.position.x < -12) s.position.x += 24;
+    if (s.position.z > 9) s.position.z -= 18; if (s.position.z < -9) s.position.z += 18;
+    s.rotation.y = yawTarget;
+    s.material.opacity += (op - s.material.opacity) * (1 - Math.exp(-3 * dt));
+  }
+  for (const c of clouds) {
+    c.position.x += (0.25 + wv.x * 0.25) * dt;
+    c.position.z += wv.z * 0.12 * dt;
+    if (c.position.x > 50) c.position.x -= 100; if (c.position.x < -50) c.position.x += 100;
+    if (c.position.z > -10) c.position.z -= 34; if (c.position.z < -44) c.position.z += 34;
+  }
+}
+
+function updateParticles(now, dt) {
+  drops = drops.filter(d => {
+    const k = (now - d.t0) / 380;
+    if (k >= 1) { remT(d.m); return false; }
+    d.m.scale.setScalar(1 - k);
+    return true;
+  });
+  confetti = confetti.filter(m => {
+    const u = m.userData;
+    if (now - u.t0 > 7000) { remT(m); return false; }
+    if (m.position.y > 0.03) {
+      u.v.y -= 14 * dt; u.v.multiplyScalar(0.985);
+      m.position.addScaledVector(u.v, dt);
+      m.rotation.x += u.r.x * dt; m.rotation.y += u.r.y * dt; m.rotation.z += u.r.z * dt;
+      if (m.position.y < 0.03) { m.position.y = 0.03; m.rotation.x = -Math.PI / 2; m.rotation.y = 0; }
+    }
+    return true;
+  });
+  const r = canvas.getBoundingClientRect();
+  floaters = floaters.filter(f => {
+    if (now - f.t0 > 1700) { f.el.remove(); return false; }
+    tmpV.copy(f.pos).project(camBaseCam);
+    f.el.style.left = ((tmpV.x + 1) / 2 * r.width) + 'px';
+    f.el.style.top = ((1 - tmpV.y) / 2 * r.height) + 'px';
+    return true;
+  });
+}
+
+function frame() {
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  runTweens(now);
+  updateChars(now, dt);
+  updateWind(now, dt);
+  updateAim(now);
+  updateMoveArea();
+  updateParticles(now, dt);
+  netTick(now);
+
+  camera.position.copy(camBaseCam.position);
+  if (shake > 0.001) {
+    camera.position.x += (Math.random() - 0.5) * shake;
+    camera.position.y += (Math.random() - 0.5) * shake;
+    shake *= Math.pow(0.02, dt);
+  }
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+// 디버그/자동 테스트용 조회 훅
+window.__decal = {
+  state: () => ({ axis, turn, phase, move: settings.move, moveR: moveR(), wind: { ...wind },
+    net: { me: net.me, host: net.host, connected: !!net.conn, code: net.code },
+    players: players.map(p => ({ ...p.pos, hp: p.hp, from: p.moveFrom })) }),
+  toScreen(x, z, y = 0) {
+    tmpV.set(x, y, z).project(camBaseCam);
+    const r = canvas.getBoundingClientRect();
+    return { x: (tmpV.x + 1) / 2 * r.width, y: (1 - tmpV.y) / 2 * r.height };
+  },
+  // AI 밸런스 확인: 현재 판 설정에서 AI 실력별 명중률 시뮬레이션 (애니메이션 없음)
+  aiStats(level, n = 2000) {
+    const saved = { ai: settings.ai, wind: { ...wind } };
+    settings.ai = level;
+    const r = { core: 0, edge: 0, miss: 0, out: 0, avgDmg: 0 };
+    for (let i = 0; i < n; i++) {
+      rollWind();
+      const me = { zone: 1, pos: randomSpot(1) }, foe = { zone: 0, pos: randomSpot(0) };
+      const plan = aiPlan(me, foe);
+      const S = gunTip(me, Math.atan2(plan.x - me.pos.x, plan.z - me.pos.z));
+      const d = Math.hypot(plan.x - S.x, plan.z - S.z), wv = windVec();
+      const land = { x: plan.x + wv.x * DRIFT * d, z: plan.z + wv.z * DRIFT * d };
+      if (!inZone(land, 1)) { r.out++; continue; }
+      const mir = mirror(land), dist = Math.hypot(mir.x - foe.pos.x, mir.z - foe.pos.z);
+      if (dist <= HIT_CORE) { r.core++; r.avgDmg += DMG_CORE; }
+      else if (dist <= HIT_EDGE) { r.edge++; r.avgDmg += DMG_EDGE; }
+      else r.miss++;
+    }
+    settings.ai = saved.ai; Object.assign(wind, saved.wind);
+    for (const k of ['core', 'edge', 'miss', 'out']) r[k] = +(r[k] / n * 100).toFixed(1);
+    r.avgDmg = +(r.avgDmg / n).toFixed(1);
+    return r;
+  },
+  applySettings(s) { Object.assign(settings, s); applySettings(); },
+};
+
+// 처음엔 판만 깔아두고 설정 화면부터
+Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then(() => {
+  applySettings();
+  buildBoard();
+  phase = 'menu';
+  // 초대 링크(?room=코드)로 들어오면 바로 그 방에 참가
+  const room = new URLSearchParams(location.search).get('room');
+  if (room) settings.opp = 'online';
+  updateHud();
+  openMenu();
+  if (room) { $('codeIn').value = room.toUpperCase(); netJoin(room); }
+  requestAnimationFrame(frame);
+});
+</script>
+</body>
+</html>
