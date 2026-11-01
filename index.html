@@ -101,7 +101,60 @@
   #menu h1 { margin:0 0 10px; font-weight:normal; font-size:40px; text-align:center; color:var(--a);
              -webkit-text-stroke:1.5px var(--ink); text-shadow:3px 3px 0 var(--ink); }
   #menu h1 span { color:var(--b); }
+  #titleScreen {
+    position:fixed; inset:0; z-index:10; isolation:isolate; overflow:hidden;
+    background:#fffdf6; min-height:280px;
+  }
+  #titleScreen[hidden] { display:none; }
+  .titleBg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+             object-position:center; pointer-events:none; }
+  .titleHeading {
+    position:absolute; z-index:2; top:10%; left:0; width:100%; margin:0; padding:0 16px;
+    font-size:clamp(72px,8.8vw,142px); line-height:1.2; font-weight:normal; text-align:center;
+    color:var(--a); white-space:nowrap; letter-spacing:-.045em;
+    -webkit-text-stroke:2.5px var(--ink); paint-order:stroke fill;
+    text-shadow:0 5px 0 #fffdf6, 0 8px 0 var(--ink); animation:titleIn .65s ease-out both;
+  }
+  .titleHeading span { color:var(--b); }
+  .titleChar {
+    position:absolute; bottom:7%; width:35%; height:64%; object-fit:contain;
+    object-position:center bottom; pointer-events:none; animation:titleIn .7s .08s ease-out both;
+  }
+  .titleChar.a { left:4%; }
+  .titleChar.b { right:4%; animation-delay:.16s; }
+  .titleActions {
+    position:absolute; z-index:3; left:0; right:0; bottom:14%; display:flex;
+    justify-content:center; padding:0 20px; animation:titleIn .6s .18s ease-out both;
+  }
+  #titleStartBtn {
+    min-width:200px; min-height:64px; padding:10px 48px; border-width:3px;
+    border-radius:22px; background:#ffd23f; font-size:32px; box-shadow:0 6px 0 var(--ink);
+    transition:background .15s, transform .15s, box-shadow .15s;
+  }
+  #titleStartBtn:hover { background:#ffe477; transform:translateY(-2px); box-shadow:0 8px 0 var(--ink); }
+  #titleStartBtn:active { transform:translateY(4px); box-shadow:0 2px 0 var(--ink); }
+  #titleStartBtn:focus-visible { outline:4px solid var(--a); outline-offset:7px; }
+  @keyframes titleIn { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+  @media (max-aspect-ratio:3/4) {
+    .titleHeading { top:12%; font-size:clamp(48px,18vw,100px); -webkit-text-stroke-width:2px;
+                    text-shadow:0 3px 0 #fffdf6, 0 6px 0 var(--ink); }
+    .titleChar { bottom:24%; width:54%; height:48%; }
+    .titleChar.a { left:-2%; } .titleChar.b { right:-2%; }
+    .titleActions { bottom:calc(10% + env(safe-area-inset-bottom, 0px)); }
+    #titleStartBtn { min-width:180px; }
+  }
+  @media (max-height:480px) and (min-aspect-ratio:3/4) {
+    .titleHeading { top:6%; font-size:clamp(42px,10vh,64px); }
+    .titleChar { height:65%; bottom:4%; }
+    .titleActions { bottom:12%; }
+    #titleStartBtn { min-width:150px; min-height:50px; padding:6px 32px; font-size:26px; }
+  }
+  @media (prefers-reduced-motion:reduce) {
+    .titleHeading, .titleChar, .titleActions { animation:none; }
+    #titleStartBtn { transition:none; }
+  }
   .row { display:flex; align-items:center; gap:10px; margin:9px 0; flex-wrap:wrap; }
+  .row[hidden] { display:none; }
   .row > label { width:92px; font-size:17px; }
   .seg { display:flex; gap:6px; flex-wrap:wrap; flex:1; }
   .seg button { background:#fff; box-shadow:2px 2px 0 var(--ink); padding:4px 12px; font-size:15px; border-width:2.5px; }
@@ -134,7 +187,8 @@
 <!-- 온라인 대전: 브라우저끼리 직접 연결 (처음 찾을 때만 PeerJS 무료 중개 서버 사용) -->
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
 <script type="importmap">
-{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
 </script>
 </head>
 <body>
@@ -175,6 +229,11 @@
 <div id="menu" hidden>
   <div class="card">
     <h1>데칼<span>코마니</span></h1>
+    <div class="row"><label>게임</label><div class="seg" data-key="mode">
+      <button data-v="classic">체력전</button><button data-v="sign">표지판 레이스</button></div></div>
+    <div class="hint" id="modeHint"></div>
+    <div class="row" id="signRow"><label>표지판 수</label><div class="seg" data-key="signs">
+      <button data-v="4">4개</button><button data-v="6">6개</button><button data-v="8">8개</button></div></div>
     <div class="row"><label>상대</label><div class="seg" data-key="opp">
       <button data-v="ai">AI 대결</button><button data-v="pvp">친구와 (한 화면)</button><button data-v="online">온라인 대전</button></div></div>
     <div class="row" id="aiRow"><label>AI 실력</label><div class="seg" data-key="ai">
@@ -199,6 +258,9 @@
     <div class="row"><label>맵 크기</label><div class="seg" data-key="map">
       <button data-v="small">작게</button><button data-v="normal">보통</button><button data-v="large">크게</button></div></div>
     <div class="hint" id="mapHint"></div>
+    <div class="row"><label>지형</label><div class="seg" data-key="terrain">
+      <button data-v="flat">평지</button><button data-v="hill">언덕</button><button data-v="mountain">산</button></div></div>
+    <div class="hint" id="terrainHint"></div>
     <div class="row"><label>캐릭터 위치</label><div class="seg" data-key="move">
       <button data-v="manual">직접 이동</button><button data-v="auto">자동 이동</button></div></div>
     <div class="hint" id="moveHint"></div>
@@ -208,9 +270,34 @@
     <div class="menuBtns"><button id="closeMenuBtn">계속하기</button><button id="startBtn">시작!</button></div>
   </div>
 </div>
+<section id="titleScreen" aria-labelledby="titleHeading" hidden>
+  <img class="titleBg" src="./아트/타이틀_배경.png" alt="" decoding="async" fetchpriority="high">
+  <h1 class="titleHeading" id="titleHeading">데칼<span>코마니</span></h1>
+  <img class="titleChar a" src="./아트/캐릭터_A.png" alt="" decoding="async" draggable="false">
+  <img class="titleChar b" src="./아트/캐릭터_B.png" alt="" decoding="async" draggable="false">
+  <div class="titleActions"><button id="titleStartBtn" type="button">시작</button></div>
+</section>
 <div id="loading">불러오는 중…</div>
 
 <script>
+  // 타이틀은 엔진/이미지 로딩과 별개로 먼저 표시. 초대 링크는 기존 참가 흐름을 유지.
+  (() => {
+    const title = document.getElementById('titleScreen');
+    if (!new URLSearchParams(location.search).get('room')) {
+      title.hidden = false;
+      document.getElementById('bottom').inert = true;
+    }
+    title.querySelectorAll('img').forEach(img => {
+      const hideFailed = () => { img.style.visibility = 'hidden'; };
+      img.addEventListener('error', hideFailed, { once:true });
+      if (img.complete && !img.naturalWidth) hideFailed();
+    });
+    document.getElementById('titleStartBtn').addEventListener('click', () => {
+      title.hidden = true;
+      document.getElementById('bottom').inert = false;
+      document.dispatchEvent(new Event('decal:start'));
+    }, { once:true });
+  })();
   // three.js(CDN)를 못 불러오면 안내
   setTimeout(() => {
     const l = document.getElementById('loading');
@@ -220,6 +307,8 @@
 
 <script type="module">
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 document.getElementById('loading').remove();
 
 // ================= 설정 =================
@@ -247,16 +336,64 @@ const CFG = {
     hard:   { sigma: 0.55, comp: 0.9,  pref: 7,  label: '어려움', hint: '대칭과 바람을 거의 정확히 읽어요' },
     master: { sigma: 0.3,  comp: 1.0,  pref: 8,  label: '고수',   hint: '빈틈이 거의 없어요. 행운을 빌어요' },
   },
+  // 지형: n = 언덕 수(16×10m 기준, 접는 선 건너편에 똑같이 하나 더), amp = 언덕 높이(m), r = 언덕 퍼짐 반지름(m)
+  terrain: {
+    flat:     { n: 0, amp: 0,    r: [1, 1],       label: '평지' },
+    hill:     { n: 3, amp: 1.3, r: [1.5, 2.3],   label: '언덕' },
+    mountain: { n: 5, amp: 2.3, r: [1.3, 2.1],   label: '산' },
+  },
+  // 데칼 오목: gap = 교차점 간격(m, 물감폭탄 설정으로 고름), maxShots = 무승부까지 두 사람 합계 발사 수
+  // noise = AI 수 선택의 흔들림(클수록 엉뚱한 수)
+  omok: {
+    gap: { big: 1.2, normal: 1.0, small: 0.8 },
+    maxShots: 80,
+    noise: { easy: 0.9, normal: 0.45, hard: 0.18, master: 0.05 },
+  },
+  // 주사위 땅따먹기: cell = 칸(=주사위 면) 크기(m, 물감폭탄 설정으로 고름), shots = 한 사람당 던지는 수
+  // noise = AI 자리 선택의 흔들림, pHit = AI가 캐릭터 정타(전개도 전체)를 노릴 때 기대하는 성공률
+  dice: {
+    cell: { big: 1.25, normal: 1.0, small: 0.8 },
+    shots: 8,
+    noise: { easy: 0.8, normal: 0.4, hard: 0.15, master: 0.05 },
+    pHit: { easy: 0.15, normal: 0.3, hard: 0.5, master: 0.7 },
+  },
+  // 거울 숨바꼭질: qMul = '?' 범위(스침 반경 배수 — 이 안이면 방향을 안 알려줌), moveMul = 한 턴 이동 거리 배수,
+  // dmg = [정타, 스침] 피해, maxShots = 한 사람 최대 발사 수(넘으면 체력 많은 쪽 승), noise = AI 자리 선택의 흔들림
+  hide: {
+    qMul: 2, moveMul: 0.5, dmg: [50, 25], maxShots: 30, maxMarks: 60,
+    noise: { easy: 0.8, normal: 0.4, hard: 0.15, master: 0.05 },
+  },
+  // 표지판 레이스(동시 진행): maxShotsMul = 한 사람 최대 발사 수(표지판 수 배수, 넘으면 미완주로 끝남),
+  // windSec = 바람이 바뀌는 간격(초, 두 사람 공통), think = AI가 한 발에 쓰는 시간(초, 이동 포함)
+  sign: {
+    maxShotsMul: 4, windSec: 8,
+    think: { easy: [5, 8], normal: [3.5, 6], hard: [2.5, 4], master: [1.5, 2.5] },
+  },
+};
+const MODES = {
+  omok:    { label: '데칼 오목', hint: '쏜 자리의 대칭 위치에 내 돌이 찍혀요. 5목을 먼저 만들면 승리' },
+  dice:    { label: '주사위 땅따먹기', hint: '주사위가 대칭 자리에 떨어져 나온 눈 수만큼 전개도가 펼쳐져 빈 칸을 차지해요. 자리가 모자라면 무효' },
+  hide:    { label: '거울 숨바꼭질', hint: '상대가 안 보여요. 찍힌 자리에서 상대가 있는 쪽(↑↓←→)만 알려주고, 가까우면 ?. 물감 위로는 못 가요 (AI·온라인 전용)' },
+  sign:    { label: '표지판 레이스', hint: '각자 레인에서 동시에 쏴요. 대칭 건너편 표지판을 차례로 맞히기 — 바람은 둘이 똑같이, 빗맞힘이 적은 쪽이 승리 (같으면 먼저 끝낸 쪽). AI·온라인 전용' },
+  classic: { label: '체력전',   hint: '대칭 위치로 상대 캐릭터를 맞혀 체력을 깎아요' },
 };
 const QUICK = {
-  easy:   { bomb: 'big',    wind: 'weak',   map: 'small' },
-  normal: { bomb: 'normal', wind: 'normal', map: 'normal' },
-  hard:   { bomb: 'small',  wind: 'strong', map: 'large' },
+  easy:   { bomb: 'big',    wind: 'weak',   map: 'small',  terrain: 'flat' },
+  normal: { bomb: 'normal', wind: 'normal', map: 'normal', terrain: 'flat' },
+  hard:   { bomb: 'small',  wind: 'strong', map: 'large',  terrain: 'flat' },
 };
 const SETTINGS_KEY = 'decalcomanie.settings';
-const settings = { opp: 'ai', ai: 'normal', bomb: 'normal', wind: 'normal', map: 'normal', axis: 'v', move: 'manual' };
+const settings = { mode: 'classic', opp: 'ai', ai: 'normal', bomb: 'normal', wind: 'normal', map: 'normal', terrain: 'flat', axis: 'v', move: 'manual', signs: '6' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch {}
+if (settings.mode === 'paint') settings.mode = 'dice';   // 예전 물감 땅따먹기 설정
+// 메인 모드는 체력전(기본)·표지판 레이스 둘 (2026-10-10). 숨바꼭질·오목·주사위는 메뉴에서 숨김 — 코드는 남겨둠
+const MAIN_MODES = ['classic', 'sign'];
+if (!MAIN_MODES.includes(settings.mode)) settings.mode = 'classic';
+if (!['4', '6', '8'].includes(String(settings.signs))) settings.signs = '6';
+settings.terrain = 'flat';   // 언덕·산은 접히는 구간이 어색해서 평지만 씀 (지형 코드는 남겨둠)
+if ((settings.mode === 'hide' || settings.mode === 'sign') && settings.opp === 'pvp') settings.opp = 'ai';   // 숨바꼭질(상대 숨김)·레이스(동시 진행)는 한 화면 대전 불가
 
+let MODE = 'classic';                      // 지금 판의 게임 종류 (applySettings에서 정함)
 let BW = 16, BD = 10;                   // 판 가로(x), 세로(z)
 let HIT_CORE = 0.45, HIT_EDGE = 0.9;    // 정타 / 스침 판정 반경
 const DMG_CORE = 40, DMG_EDGE = 20;
@@ -266,6 +403,8 @@ const NAMES = ['A', 'B'];
 const COLORS = [0x4d8dff, 0xff6b5a];
 const CSS_COLORS = ['#3f7ff0', '#f0584a'];
 const PAPER = [0xeaf2ff, 0xffece6];
+const NEUTRAL = 0x8a6f86;               // 두 색이 섞인 탁한 물감
+const hexCss = c => '#' + c.toString(16).padStart(6, '0');
 
 const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -414,8 +553,9 @@ function paperTexture(w, h) {
   });
 }
 
-// 물감 자국: 매 발사마다 모양이 달라짐. 테두리는 어둡게 → 색을 곱하면 카툰 외곽선이 됨
-function splatTexture() {
+// 물감 자국 모양: 원 여러 개 [x, y, 반지름] (256px 텍스처 기준, 가운데 0,0)
+// 땅따먹기에선 이 모양 그대로 땅이 되므로, 온라인에선 쏜 쪽이 뽑아서 같이 보냄
+function splatShapes() {
   const shapes = [[0, 0, 54]];
   for (let i = 0; i < 9; i++) {
     const a = Math.random() * Math.PI * 2, r = 30 + Math.random() * 28;
@@ -425,6 +565,11 @@ function splatTexture() {
     const a = Math.random() * Math.PI * 2, r = 64 + Math.random() * 46;
     shapes.push([Math.cos(a) * r, Math.sin(a) * r, 3 + Math.random() * 7]);
   }
+  return shapes.map(s => s.map(v => Math.round(v * 10) / 10));
+}
+
+// 물감 자국: 매 발사마다 모양이 달라짐. 테두리는 어둡게 → 색을 곱하면 카툰 외곽선이 됨
+function splatTexture(shapes = splatShapes()) {
   return canvasTex(256, g => {
     g.translate(128, 128);
     const pass = (color, grow) => {
@@ -457,8 +602,19 @@ let axis = 'v';   // 'v' = 좌우(세로 접는 선), 'h' = 상하(가로 접는
 const zoneOf = p => axis === 'v' ? (p.x < 0 ? 0 : 1) : (p.z < 0 ? 0 : 1);
 const mirror = p => axis === 'v' ? { x: -p.x, z: p.z } : { x: p.x, z: -p.z };
 const distToHinge = p => Math.abs(axis === 'v' ? p.x : p.z);
+const onPaper = p => Math.abs(p.x) <= BW / 2 && Math.abs(p.z) <= BD / 2;
+// 쏠 수 있는 곳: 체력전은 내 구역만, 오목·땅따먹기는 종이 어디든 (찍히는 곳은 늘 접는 선 건너편)
+// 쏠 수 있는 곳: 체력전·주사위는 내 구역만(찍히는 곳은 상대 구역), 오목은 종이 어디든(서로 막아야 하므로)
+const ownZoneOnly = () => MODE !== 'omok';
+const canAim = (p, i = turn) => !!p && (ownZoneOnly() ? inZone(p, i) : onPaper(p));
+function clampAim(p, z) {
+  if (ownZoneOnly()) return clampToZone(p, z);
+  return { x: clamp(p.x, -BW / 2 + 0.2, BW / 2 - 0.2), z: clamp(p.z, -BD / 2 + 0.2, BD / 2 - 0.2) };
+}
 function inZone(p, z) {
   if (Math.abs(p.x) > BW / 2 || Math.abs(p.z) > BD / 2) return false;
+  if (MODE === 'sign') return p.z > 0 && (z === 0 ? p.x < 0 : p.x > 0);   // 표지판 레이스: z = 레인 번호, 둘 다 아래쪽 절반
+
   const s = axis === 'v' ? p.x : p.z;
   return z === 0 ? s < 0 : s > 0;
 }
@@ -546,11 +702,85 @@ const streaks = [];
   }
 })();
 
+// ================= 지형 (높낮이) =================
+// 언덕을 몇 개 놓고, 접는 선 건너편에 똑같은 언덕을 하나 더 → 지형도 데칼코마니(양쪽이 서로 거울).
+// 평평한 종이 위로 솟기만 하고, 판 가장자리는 평평하게 눌러서 옆면이 뚫리지 않게 함.
+let terrain = [];               // [x, z, 반지름, 높이]
+let terrainTop = 0;             // 가장 높은 곳 (접는 필름이 그 위로 뜸)
+let terrainAmp = 1;             // 언덕 겹침 합산의 부드러운 상한 (가장 높은 언덕 높이)
+let terrainMeshes = [];
+
+function terrainH(x, z) {
+  if (!terrain.length) return 0;
+  const e = Math.min(BW / 2 - Math.abs(x), BD / 2 - Math.abs(z));
+  if (e <= 0) return 0;
+  let h = 0;
+  for (const [cx, cz, r, a] of terrain) {
+    const d2 = (x - cx) ** 2 + (z - cz) ** 2;
+    if (d2 < 9 * r * r) h += a * Math.exp(-d2 / (2 * r * r));
+  }
+  h = terrainAmp * Math.tanh(h / terrainAmp);   // 겹친 언덕이 합쳐져도 최고 높이를 넘지 않음
+  const f = Math.min(1, e / 1.2);
+  return h * f * f * (3 - 2 * f);
+}
+
+const round2 = v => Math.round(v * 100) / 100;
+function genTerrain() {
+  const T = CFG.terrain[settings.terrain] ?? CFG.terrain.flat;
+  const n = T.n ? Math.max(1, Math.round(T.n * BW * BD / 160)) : 0, bumps = [];
+  for (let i = 0; i < n; i++) {
+    for (let tries = 0; tries < 60; tries++) {
+      const r = round2(rand(T.r[0], T.r[1])), a = round2(rand(0.55, 1) * T.amp);
+      const p = axis === 'v' ? { x: -rand(0.3, BW / 2 - 1), z: rand(-BD / 2 + 1, BD / 2 - 1) }
+        : { x: rand(-BW / 2 + 1, BW / 2 - 1), z: -rand(0.3, BD / 2 - 1) };
+      p.x = round2(p.x); p.z = round2(p.z);
+      const m = mirror(p);
+      // 언덕끼리 겹치지 않게 간격을 두고(판 전체가 부풀지 않게), 접는 선에도 너무 붙지 않게
+      const apart = bumps.every(([x, z, r2]) => Math.hypot(x - p.x, z - p.z) >= (r + r2) * 0.95 && Math.hypot(x - m.x, z - m.z) >= (r + r2) * 0.95)
+        && Math.hypot(p.x - m.x, p.z - m.z) >= r * 1.7;
+      if (apart) { bumps.push([p.x, p.z, r, a], [m.x, m.z, r, a]); break; }
+    }
+  }
+  return bumps;
+}
+function setTerrain(bumps) {
+  terrain = bumps ?? [];
+  terrainAmp = Math.max(0.01, ...terrain.map(b => b[3]));
+  terrainTop = 0;
+  for (let x = -BW / 2; x <= BW / 2; x += 0.25) for (let z = -BD / 2; z <= BD / 2; z += 0.25) terrainTop = Math.max(terrainTop, terrainH(x, z));
+}
+const filmY = () => terrainTop + 0.08;    // 접는 필름 높이: 가장 높은 언덕 위로 뜸
+
+// 눕힌 평면(rotation.x = -π/2)을 지형 굴곡에 맞게 휘게 굽기. 메시는 (cx, terrainH(cx,cz), cz)에 둠
+// sx, sy = 메시 스케일(대칭 자국은 -1). 눕힌 평면에서 세계 z = -로컬 y
+function conform(geo, cx, cz, sx = 1, sy = 1, lift = 0.02) {
+  const pos = geo.attributes.position, h0 = terrainH(cx, cz);
+  for (let i = 0; i < pos.count; i++) pos.setZ(i, terrainH(cx + sx * pos.getX(i), cz - sy * pos.getY(i)) - h0 + lift);
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// 격자선을 지형 위에 깔기: 선분을 잘게 쪼개서 높이를 따라가게 함 (pts = x,y,z 쌍 6개씩 한 선분)
+function drapeSegments(pts, step = 0.25) {
+  const out = [];
+  for (let i = 0; i < pts.length; i += 6) {
+    const ax = pts[i], az = pts[i + 2], bx = pts[i + 3], bz = pts[i + 5];
+    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / step));
+    for (let k = 0; k < n; k++) for (const t of [k / n, (k + 1) / n]) {
+      const x = ax + (bx - ax) * t, z = az + (bz - az) * t;
+      out.push(x, terrainH(x, z) + 0.025, z);
+    }
+  }
+  return out;
+}
+
 // ================= 판 (구역 2개 + 접는 선) =================
 let board = null;
 function buildBoard() {
   if (board) scene.remove(board);
   board = new THREE.Group();
+  terrainMeshes = [];
 
   const slab = mesh(new THREE.BoxGeometry(BW + 0.9, 0.6, BD + 0.9), toon(0xd89a5e));
   slab.position.y = -0.31; slab.receiveShadow = true;
@@ -558,39 +788,240 @@ function buildBoard() {
   const rim = mesh(new THREE.BoxGeometry(BW + 1.05, 0.14, BD + 1.05), toon(0x2b2b2b), false);
   rim.position.y = -0.62; board.add(rim);
 
-  for (const z of [0, 1]) {
-    const w = axis === 'v' ? BW / 2 : BW, h = axis === 'v' ? BD : BD / 2;
-    const half = new THREE.Mesh(new THREE.PlaneGeometry(w, h), toon(PAPER[z], { map: paperTexture(w, h) }));
-    half.rotation.x = -Math.PI / 2; half.receiveShadow = true;
-    if (axis === 'v') half.position.set(z ? BW / 4 : -BW / 4, 0, 0);
-    else half.position.set(0, 0, z ? BD / 4 : -BD / 4);
+  // 종이 조각들. 보통은 접는 선 기준 두 구역, 표지판 레이스는 위(표지판 쪽) 두 레인 + 아래(사격 쪽) 두 레인
+  const pieces = MODE === 'sign'
+    ? [[-BW / 4, -BD / 4, 0], [BW / 4, -BD / 4, 1], [-BW / 4, BD / 4, 0], [BW / 4, BD / 4, 1]].map(([hx, hz, z]) => ({ z, hx, hz, w: BW / 2, h: BD / 2, name: hz > 0 ? `${NAMES[z]} 레인` : null }))
+    : [0, 1].map(z => ({
+      z, w: axis === 'v' ? BW / 2 : BW, h: axis === 'v' ? BD : BD / 2, name: `${NAMES[z]} 구역`,
+      hx: axis === 'v' ? (z ? BW / 4 : -BW / 4) : 0, hz: axis === 'v' ? 0 : (z ? BD / 4 : -BD / 4),
+    }));
+  for (const { z, w, h, hx, hz, name } of pieces) {
+    // 종이 한 장 = 잘게 나눈 평면 + 정점마다 지형 높이 (0.25m 간격)
+    const geo = new THREE.PlaneGeometry(w, h, Math.max(1, Math.round(w / 0.25)), Math.max(1, Math.round(h / 0.25)));
+    if (terrain.length) {
+      // 높이에 따라 종이 색이 하얀색 → 모래색으로 물듦 (기울여 보기에서도 높낮이가 읽히게)
+      const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), c = new THREE.Color();
+      const sand = new THREE.Color(0xe2b76a);
+      for (let i = 0; i < pos.count; i++) {
+        const y = terrainH(hx + pos.getX(i), hz - pos.getY(i));
+        pos.setZ(i, y);
+        c.set(0xffffff).lerp(sand, Math.min(1, y / terrainAmp) * 0.8);
+        col.set([c.r, c.g, c.b], i * 3);
+      }
+      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      geo.computeVertexNormals();
+    }
+    const half = new THREE.Mesh(geo, toon(PAPER[z], { map: paperTexture(w, h), vertexColors: terrain.length > 0 }));
+    half.rotation.x = -Math.PI / 2; half.receiveShadow = true; half.castShadow = terrain.length > 0;
+    half.position.set(hx, 0, hz);
     board.add(half);
+    terrainMeshes.push(half);
 
-    // 구역 이름
-    const label = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.65), new THREE.MeshBasicMaterial({
+    // 구역(레인) 이름
+    if (!name) continue;
+    const label = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.65, 16, 4), new THREE.MeshBasicMaterial({
       map: canvasTex({ w: 512, h: 128 }, g => {
         g.font = '96px Jua, sans-serif'; g.textBaseline = 'middle';
-        g.fillStyle = CSS_COLORS[z]; g.globalAlpha = 0.5; g.fillText(`${NAMES[z]} 구역`, 8, 70);
+        g.fillStyle = CSS_COLORS[z]; g.globalAlpha = 0.5; g.fillText(name, 8, 70);
       }), transparent: true, depthWrite: false,
     }));
     label.rotation.x = -Math.PI / 2;
-    const lz = axis === 'v' ? -BD / 2 + 0.6 : (z ? BD / 2 - 0.6 : -BD / 2 + 0.6);
-    const lx = axis === 'v' ? (z ? BW / 2 - 1.5 : -BW / 2 + 1.5) : -BW / 2 + 1.5;
-    label.position.set(lx, 0.006, lz);
+    const lz = MODE === 'sign' ? BD / 2 - 0.6 : axis === 'v' ? -BD / 2 + 0.6 : (z ? BD / 2 - 0.6 : -BD / 2 + 0.6);
+    const lx = MODE === 'sign' ? hx - BW / 4 + 1.5 : axis === 'v' ? (z ? BW / 2 - 1.5 : -BW / 2 + 1.5) : -BW / 2 + 1.5;
+    label.position.set(lx, terrainH(lx, lz), lz);
+    conform(label.geometry, lx, lz, 1, 1, 0.02);
     board.add(label);
+  }
+  // 표지판 레이스: 두 레인을 나누는 칸막이 선 (접히지 않음)
+  if (MODE === 'sign') {
+    const div = new THREE.Mesh(new THREE.PlaneGeometry(0.07, BD), new THREE.MeshBasicMaterial({ color: 0x6d6a62 }));
+    div.rotation.x = -Math.PI / 2; div.position.set(0, 0.025, 0);
+    board.add(div);
   }
 
   // 접는 선 (실선 — 점선 간격이 눈금자 역할을 하지 않도록)
-  const crease = new THREE.Mesh(
-    axis === 'v' ? new THREE.BoxGeometry(0.09, 0.02, BD) : new THREE.BoxGeometry(BW, 0.02, 0.09),
-    new THREE.MeshBasicMaterial({ color: 0x2b2b2b }));
-  crease.position.y = 0.01;
-  board.add(crease);
+  // (언덕을 따라 오르내리도록 짧은 조각으로 이은 띠)
+  const L = axis === 'v' ? BD : BW, n = Math.round(L / 0.15), cv = [], ci = [];
+  for (let i = 0; i <= n; i++) {
+    const t = -L / 2 + L * i / n;
+    for (const off of [-0.045, 0.045]) {
+      const x = axis === 'v' ? off : t, zz = axis === 'v' ? t : off;
+      cv.push(x, terrainH(x, zz) + 0.03, zz);
+    }
+    if (i) { const a = (i - 1) * 2; ci.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  }
+  const cg = new THREE.BufferGeometry();
+  cg.setAttribute('position', new THREE.Float32BufferAttribute(cv, 3));
+  cg.setIndex(ci);
+  board.add(new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ color: 0x2b2b2b, side: THREE.DoubleSide })));
   scene.add(board);
 }
 
 // ================= 캐릭터 =================
+// 물감이 3D 모델 (Meshy 생성·리깅, 아트/모델/). 못 불러오면 아래 도형 캐릭터(makeShapeChar)를 씀
+const CHAR_H = 2.2;          // 화면 속 키 (안테나·모자 포함, m)
+const GUN_LEN = 0.62;        // 물감총 길이 (m)
+const GUN_DEF = { f: 0.72, r: 0.44, y: 0.72 };   // 총구 위치 (캐릭터 기준 앞·오른쪽·높이) — 모델을 쓰면 실제 총구로 바뀜
+const charModels = { ready: false, chars: [], walk: [], gun: null, gunTex: [] };
+const charModelsReady = (async () => {
+  try {
+    const L = new GLTFLoader();
+    const names = ['물감이A_리깅', '물감이B_리깅', '물감이A_걷기', '물감이B_걷기', '물감총'];
+    const [a, b, aw, bw, gun] = await Promise.all(names.map(n => L.loadAsync(`./아트/모델/${n}.glb`)));
+    charModels.chars = [a.scene, b.scene];
+    charModels.walk = [aw.animations[0], bw.animations[0]];
+    charModels.gun = gun.scene;
+    let tex = null;
+    gun.scene.traverse(m => { if (m.isMesh && m.material.map) tex = m.material.map; });
+    charModels.gunTex = [0, 1].map(z => tex ? tintTank(tex, CSS_COLORS[z]) : null);
+    charModels.ready = true;
+  } catch (e) { console.warn('물감이 모델을 못 불러와서 도형 캐릭터를 씀', e); }
+})();
+
+// 물감총 텍스처의 흰 물감 탱크만 팀색으로 칠함 (회색 총열·노란 총구는 그대로)
+function tintTank(tex, css) {
+  const img = tex.image, c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height), px = d.data, team = new THREE.Color(css);
+  const tr = team.r * 255, tg = team.g * 255, tb = team.b * 255;
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i], gg = px[i + 1], b = px[i + 2], mx = Math.max(r, gg, b), mn = Math.min(r, gg, b);
+    if (mn < 205 || mx - mn > 18) continue;   // 거의 흰 곳만
+    const k = mx / 255;
+    px[i] = tr * k; px[i + 1] = tg * k; px[i + 2] = tb * k;
+  }
+  g.putImageData(d, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = tex.colorSpace; t.flipY = tex.flipY; t.wrapS = tex.wrapS; t.wrapT = tex.wrapT;
+  return t;
+}
+
+// 리깅 모델용 외곽선: 같은 뼈대를 쓰는 뒷면 메쉬를 법선 방향으로 살짝 부풀림
+function outlineSkinned(m, thick) {
+  const mat = new THREE.MeshBasicMaterial({ color: 0x2b2b2b, side: THREE.BackSide });
+  mat.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <skinning_vertex>',
+      `#include <skinning_vertex>\n  transformed += normalize(objectNormal) * ${thick.toFixed(5)};`);
+  };
+  const o = new THREE.SkinnedMesh(m.geometry, mat);
+  o.bind(m.skeleton, m.bindMatrix);
+  o.position.copy(m.position); o.quaternion.copy(m.quaternion); o.scale.copy(m.scale);
+  o.frustumCulled = false;
+  m.parent.add(o);
+}
+
+// 뼈(bone)가 자식 뼈 쪽으로 dir(월드 방향)을 가리키게 돌림
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
+function aimBone(bone, child, dir) {
+  bone.updateWorldMatrix(true, true);
+  const cur = child.getWorldPosition(_v2).sub(bone.getWorldPosition(_v1)).normalize();
+  const dq = new THREE.Quaternion().setFromUnitVectors(cur, dir.clone().normalize());
+  const parentQ = bone.parent.getWorldQuaternion(_q1).invert();
+  bone.quaternion.copy(parentQ.multiply(dq.multiply(bone.getWorldQuaternion(_q2))));
+  bone.updateWorldMatrix(false, true);
+}
+
 function makeChar(zone) {
+  return charModels.ready ? makeModelChar(zone) : makeShapeChar(zone);
+}
+
+function makeModelChar(zone) {
+  const color = COLORS[zone];
+  const mats = [];
+  const root = new THREE.Group(), rig = new THREE.Group();
+  root.add(rig);
+  scene.add(root);
+
+  // 크기·바닥 맞춤 (모델은 +Z를 바라봄)
+  const model = cloneSkinned(charModels.chars[zone]);
+  const body = new THREE.Group();
+  body.add(model); rig.add(body);
+  body.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  model.traverse(m => {
+    if (!m.isSkinnedMesh) return;
+    m.skeleton.update(); m.computeBoundingBox();
+    box.union(m.boundingBox.clone().applyMatrix4(m.matrixWorld));
+  });
+  const k = CHAR_H / (box.max.y - box.min.y);
+  body.scale.setScalar(k);
+  body.position.set(-(box.min.x + box.max.x) / 2 * k, -box.min.y * k, -(box.min.z + box.max.z) / 2 * k);
+
+  const skinned = [];
+  model.traverse(m => { if (m.isSkinnedMesh) skinned.push(m); });
+  skinned.forEach(m => {
+    m.material = toon(0xffffff, { map: m.material.map });
+    mats.push(m.material);
+    m.castShadow = true; m.frustumCulled = false;
+    m.geometry.computeBoundingBox();
+    const gb = m.geometry.boundingBox;
+    outlineSkinned(m, (gb.max.y - gb.min.y) * 0.012);
+  });
+  rig.updateMatrixWorld(true);
+
+  // 자세: 팔을 내리고, 오른쪽(+X) 팔은 앞으로 뻗어 물감총을 듦
+  const bone = n => model.getObjectByName(n);
+  const arms = [['LeftArm', 'LeftForeArm', 'LeftHand'], ['RightArm', 'RightForeArm', 'RightHand']].map(a => a.map(bone));
+  const xOf = b => b.getWorldPosition(_v1).x;
+  const gunArm = xOf(arms[0][2]) > xOf(arms[1][2]) ? arms[0] : arms[1];
+  const freeArm = gunArm === arms[0] ? arms[1] : arms[0];
+  const fs = Math.sign(xOf(freeArm[2]));
+  aimBone(freeArm[0], freeArm[1], new THREE.Vector3(fs * 0.3, -1, 0.05));
+  aimBone(freeArm[1], freeArm[2], new THREE.Vector3(fs * 0.15, -1, 0.25));
+  aimBone(gunArm[0], gunArm[1], new THREE.Vector3(0.35, -0.75, 0.55));
+  aimBone(gunArm[1], gunArm[2], new THREE.Vector3(-0.05, -0.05, 1));
+
+  // 물감총: 총구(-X)가 앞(+Z)을 보게 돌려서 손잡이를 손에 쥠
+  const gun = charModels.gun.clone(true);
+  gun.traverse(m => {
+    if (!m.isMesh) return;
+    m.material = toon(0xffffff, { map: charModels.gunTex[zone] || m.material.map });
+    mats.push(m.material);
+    m.castShadow = true;
+  });
+  const gb = new THREE.Box3().setFromObject(gun), gs = GUN_LEN / (gb.max.x - gb.min.x);
+  const gunMeshes = [];
+  gun.traverse(m => { if (m.isMesh) gunMeshes.push(m); });
+  gunMeshes.forEach(m => outline(m, 0.02 / gs));   // traverse 중에 붙이면 외곽선에 또 외곽선이 붙음
+  const gunHolder = new THREE.Group();
+  // 손잡이(뒤쪽 아래)를 원점에 두고 총구 쪽으로 뻗게 배치
+  gun.scale.setScalar(gs);
+  gun.position.set(-(gb.max.x - (gb.max.x - gb.min.x) * 0.22) * gs, -(gb.min.y + (gb.max.y - gb.min.y) * 0.3) * gs, -(gb.min.z + gb.max.z) / 2 * gs);
+  gunHolder.add(gun);
+  gunHolder.rotation.y = Math.PI / 2;
+  rig.add(gunHolder);
+  gunArm[2].getWorldPosition(gunHolder.position);
+  rig.worldToLocal(gunHolder.position);
+  gunArm[2].attach(gunHolder);
+
+  // 실제 총구 위치 (캐릭터 기준) → gunTip이 씀
+  rig.updateMatrixWorld(true);
+  const muzzle = new THREE.Vector3(gb.min.x, gb.min.y + (gb.max.y - gb.min.y) * 0.55, (gb.min.z + gb.max.z) / 2);
+  gun.localToWorld(muzzle); rig.worldToLocal(muzzle);
+  const gunOff = { f: muzzle.z, r: muzzle.x, y: muzzle.y };
+
+  // 걷기 애니메이션: 움직일 때만 섞음 (멈추면 위 자세로 돌아감)
+  const mixer = new THREE.AnimationMixer(model);
+  const walk = mixer.clipAction(charModels.walk[zone]);
+  walk.setEffectiveWeight(0); walk.play();
+
+  const tag = tagSprite(NAMES[zone], color);
+  tag.position.y = 2.65; root.add(tag);
+
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.68, 36),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; ring.visible = false; ring.renderOrder = 15;
+  root.add(ring);
+
+  return {
+    zone, root, rig, mats, eyes: new THREE.Group(), ring, tag, gunOff, mixer, walk, walkW: 0, lastPos: null,
+    hp: 100, pos: { x: 0, z: 0 }, hopY: 0, sq: 1, face: 0, faceTarget: 0,
+    hurtT: -1e9, blinkAt: performance.now() + rand(1000, 4000), flat: false, winner: false,
+  };
+}
+
+function makeShapeChar(zone) {
   const color = COLORS[zone];
   const mats = [];
   const M = c => { const m = toon(c); mats.push(m); return m; };
@@ -653,8 +1084,8 @@ function makeChar(zone) {
 
   // 차례 표시 링
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.68, 36),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }));
-  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; ring.visible = false;
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; ring.visible = false; ring.renderOrder = 15;
   root.add(ring);
 
   scene.add(root);
@@ -667,9 +1098,10 @@ function makeChar(zone) {
 
 // 총구 위치. f = 바라볼 방향(기본은 목표 방향 → 조준 미리보기·발사·AI 계산이 모두 같은 값을 씀)
 function gunTip(ch, f = ch.faceTarget) {
+  const g = ch.gunOff || GUN_DEF;
   return new THREE.Vector3(
-    ch.pos.x + Math.sin(f) * 0.72 + Math.cos(f) * 0.44, 0.72,
-    ch.pos.z + Math.cos(f) * 0.72 - Math.sin(f) * 0.44);
+    ch.pos.x + Math.sin(f) * g.f + Math.cos(f) * g.r, terrainH(ch.pos.x, ch.pos.z) + g.y,
+    ch.pos.z + Math.cos(f) * g.f - Math.sin(f) * g.r);
 }
 
 // ================= 게임 상태 =================
@@ -706,25 +1138,37 @@ function turnLabel(i) {
   return i === 0 ? '내 차례' : 'AI 차례';
 }
 
+function playerNames() {
+  return isOnline() ? (net.me === 0 ? ['나', '친구'] : ['친구', '나'])
+    : settings.opp === 'ai' ? ['나', `AI · ${CFG.ai[settings.ai].label}`] : ['플레이어 A', '플레이어 B'];
+}
+
 function updateHud() {
-  const ai = settings.opp === 'ai';
-  const names = isOnline() ? (net.me === 0 ? ['나', '친구'] : ['친구', '나'])
-    : ai ? ['나', `AI · ${CFG.ai[settings.ai].label}`] : ['플레이어 A', '플레이어 B'];
+  const names = playerNames();
   $('nameA').textContent = names[0];
   $('nameB').textContent = names[1];
+  // 카드 숫자·막대: 체력전·숨바꼭질 = 체력, 오목 = 가장 긴 줄(5목 기준), 땅따먹기 = 차지한 칸 (막대는 전체 칸 대비 %),
+  // 표지판 = 맞힌 표지판 / 전체 + 실수 수
   players.forEach((p, i) => {
     const k = NAMES[i];
-    $('bar' + k).style.width = p.hp + '%';
-    $('hp' + k).textContent = p.hp;
-    $('card' + k).classList.toggle('active', turn === i && phase !== 'over');
+    let val = p.hp, pct = p.hp;
+    if (MODE === 'omok' && omok.grid.length) { const n = omokLongest(i); val = `${n}목`; pct = n * 20; }
+    else if (MODE === 'dice' && dice.own) { val = `${dice.count[i]}칸`; pct = dicePct(i); }
+    else if (MODE === 'sign' && sign.pts.length) { val = `${sign.idx[i]}/${sign.n} · 실수 ${sign.miss[i]}`; pct = sign.idx[i] / sign.n * 100; }
+    $('bar' + k).style.width = Math.min(100, pct) + '%';
+    $('hp' + k).textContent = val;
+    $('card' + k).classList.toggle('active', (turn === i || MODE === 'sign') && phase !== 'over');   // 레이스는 둘 다 동시에 진행
   });
-  $('turnText').textContent = phase === 'over' ? '게임 끝!' : phase === 'menu' ? '설정 중' :
-    phase === 'ai' ? 'AI 조준 중…' : turnLabel(turn);
-  $('turnText').style.color = CSS_COLORS[turn];
+  const left = MODE === 'dice' && players.length ? ` · ${CFG.dice.shots - dice.shots[turn]}개`
+    : MODE === 'hide' && players.length ? ` · ${CFG.hide.maxShots - hideShots[turn]}발 남음` : '';
+  const race = MODE === 'sign' && players.length && phase !== 'over' && phase !== 'menu';
+  $('turnText').textContent = phase === 'over' ? '게임 끝!' : phase === 'menu' ? '설정 중' : race ? raceTurnText() :
+    (phase === 'ai' ? 'AI 조준 중…' : turnLabel(turn)) + left;
+  $('turnText').style.color = race ? 'var(--ink)' : CSS_COLORS[turn];
   const max = CFG.wind[settings.wind].max;
   $('windArrow').style.transform = `rotate(${wind.angle * 180 / Math.PI}deg)`;
   $('windArrow').style.opacity = wind.str ? 1 : 0.2;
-  $('windText').textContent = windLabel();
+  $('windText').textContent = race && raceOn ? raceWindText() : windLabel();
   $('windDots').textContent = '●'.repeat(wind.str) + '○'.repeat(Math.max(0, max - wind.str));
 }
 
@@ -742,34 +1186,661 @@ function floater(p, text, color, small = false, y = 1.3) {
   el.className = 'floater' + (small ? ' small' : '');
   el.innerHTML = `<span style="color:${color}">${text}</span>`;
   $('floaters').appendChild(el);
-  floaters.push({ el, pos: new THREE.Vector3(p.x, y, p.z), t0: performance.now() });
+  floaters.push({ el, pos: new THREE.Vector3(p.x, y + terrainH(p.x, p.z), p.z), t0: performance.now() });
 }
 
 // ================= 물감 자국 =================
-function splatMesh(tex, color, opacity = 1) {
-  const s = 2 * HIT_CORE / 0.45;   // 자국 크기 = 폭탄 크기
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(s, s), new THREE.MeshBasicMaterial({
+// 자국 메시 한 변 길이. 텍스처의 가운데 덩어리 반지름 ≈ 한 변 × 0.227
+function markSize() {
+  if (MODE === 'omok') return 1.5 * omok.g;
+  return 2 * HIT_CORE / 0.45;      // 자국 크기 = 폭탄 크기
+}
+function splatMesh(tex, color, opacity = 1, s = markSize()) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(s, s, 14, 14), new THREE.MeshBasicMaterial({
     map: tex, color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide,
   }));
   m.rotation.x = -Math.PI / 2;
   m.renderOrder = markOrder++;
   return m;
 }
-function addMark(p, tex, color, mirrored = false, opacity = 1) {
-  const m = splatMesh(tex, color, opacity);
-  m.position.set(p.x, 0.015, p.z);
+function addMark(p, tex, color, mirrored = false, opacity = 1, size = markSize()) {
+  const m = splatMesh(tex, color, opacity, size);
   const sx = mirrored && axis === 'v' ? -1 : 1, sy = mirrored && axis === 'h' ? -1 : 1;
+  m.position.set(p.x, terrainH(p.x, p.z), p.z);
+  if (terrain.length) conform(m.geometry, p.x, p.z, sx, sy, 0.02); else m.position.y = 0.015;
   tween(260, k => m.scale.set(sx * (0.3 + 0.7 * k), sy * (0.3 + 0.7 * k), 1), ease.outBack);
   m.scale.set(0.3 * sx, 0.3 * sy, 1);
   scene.add(m); marks.push(m);
-  while (marks.length > MAX_MARKS) {
+  while (marks.length > (MODE === 'hide' ? CFG.hide.maxMarks : MAX_MARKS)) {
     const old = marks.shift();
     scene.remove(old); old.geometry.dispose(); old.material.dispose();
   }
   return m;
 }
 
+// ================= 데칼 오목 =================
+// 착탄점을 접는 선으로 대칭시킨 자리의 가장 가까운 교차점에 돌이 찍힘.
+// 접는 선은 두 줄 사이를 지나므로 모든 교차점의 대칭 자리도 교차점.
+const omok = { g: 1, xs: [], zs: [], grid: [], meshes: [], geo: null, shots: 0 };
+
+// half = 판 절반 길이, straddle = 접는 선과 수직인 방향 → 가운데를 비우고 ±g/2부터
+function latticeAxis(half, g, straddle) {
+  const out = [];
+  if (straddle) {
+    const h = Math.floor((half - 0.45) / g + 0.5);
+    for (let k = -h; k < h; k++) out.push((k + 0.5) * g);
+  } else {
+    const m = Math.floor((half - 0.45) / g);
+    for (let k = -m; k <= m; k++) out.push(k * g);
+  }
+  return out;
+}
+
+function setupOmok() {
+  const g = omok.g = CFG.omok.gap[settings.bomb];
+  omok.xs = latticeAxis(BW / 2, g, axis === 'v');
+  omok.zs = latticeAxis(BD / 2, g, axis === 'h');
+  omok.grid = omok.xs.map(() => omok.zs.map(() => -1));   // -1 빈칸, 0/1 = A/B 돌, 2 = 탁한 돌
+  omok.meshes = omok.xs.map(() => omok.zs.map(() => null));
+  omok.shots = 0;
+  omok.geo?.dispose();
+  // 돌은 밑으로 깊게 박아서 언덕 비탈에서도 땅에 붙어 보이게 (윗면은 땅 위 0.1m)
+  omok.geo = new THREE.CylinderGeometry(0.33 * g, 0.36 * g, 0.34, 28).translate(0, -0.12, 0);
+
+  const x0 = omok.xs[0], x1 = omok.xs.at(-1), z0 = omok.zs[0], z1 = omok.zs.at(-1), pts = [];
+  for (const x of omok.xs) pts.push(x, 0, z0, x, 0, z1);
+  for (const z of omok.zs) pts.push(x0, 0, z, x1, 0, z);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(drapeSegments(pts), 3));
+  addT(new THREE.LineSegments(geo,
+    new THREE.LineBasicMaterial({ color: 0x6d6a62, transparent: true, opacity: 0.45 })));
+}
+
+const nearestIdx = (arr, v) => clamp(Math.round((v - arr[0]) / omok.g), 0, arr.length - 1);
+const snapCell = p => [nearestIdx(omok.xs, p.x), nearestIdx(omok.zs, p.z)];
+const cellPos = ([i, j]) => ({ x: omok.xs[i], z: omok.zs[j] });
+
+function setStone([i, j], c) {
+  const old = omok.meshes[i][j];
+  if (old) remT(old);
+  omok.grid[i][j] = c;
+  const m = addT(outline(mesh(omok.geo, toon(c === 2 ? NEUTRAL : COLORS[c])), 0.03));
+  const p = cellPos([i, j]);
+  m.position.set(p.x, terrainH(p.x, p.z) + 0.05, p.z);
+  m.scale.setScalar(0.3);
+  tween(300, k => m.scale.setScalar(0.3 + 0.7 * k), ease.outBack);
+  omok.meshes[i][j] = m;
+}
+
+const DIRS = [[1, 0], [0, 1], [1, 1], [1, -1]];
+// (i, j)를 지나는 c색 줄 중 가장 긴 것 (칸 목록)
+function omokLine(i, j, c) {
+  let best = [[i, j]];
+  for (const [di, dj] of DIRS) {
+    const line = [[i, j]];
+    for (const s of [1, -1]) {
+      let a = i + di * s, b = j + dj * s;
+      while (omok.grid[a]?.[b] === c) { line.push([a, b]); a += di * s; b += dj * s; }
+    }
+    if (line.length > best.length) best = line;
+  }
+  return best;
+}
+function omokLongest(c) {
+  let n = 0;
+  omok.grid.forEach((col, i) => col.forEach((v, j) => { if (v === c) n = Math.max(n, omokLine(i, j, c).length); }));
+  return n;
+}
+
+// 찍기 결과: 빈칸 → 내 돌 / 상대 돌 → 섞여서 탁한 돌 / 내 돌·탁한 돌 → 변화 없음. 5목이면 그 줄을 돌려줌
+function omokStamp(shot) {
+  const [i, j] = shot.cell, cur = omok.grid[i][j], p = cellPos(shot.cell);
+  if (cur === -1) {
+    setStone(shot.cell, turn);
+    sfx.hit();
+    const line = omokLine(i, j, turn);
+    if (line.length >= 5) return line;
+    floater(p, line.length >= 3 ? `${line.length}목!` : '착!', CSS_COLORS[turn], line.length < 3);
+  } else if (cur === turn) {
+    sfx.miss(); floater(p, '이미 내 돌', '#fff', true);
+  } else if (cur === 2) {
+    sfx.miss(); floater(p, '탁한 돌 · 무효', '#fff', true);
+  } else {
+    setStone(shot.cell, 2);
+    sfx.boing(); floater(p, '섞였다! 탁한 돌', '#e8c6ff');
+  }
+  return null;
+}
+
+// ================= 주사위 땅따먹기 =================
+// 주사위가 대칭 자리에 떨어지면 나온 눈 수만큼 전개도 면이 펼쳐져 칸을 차지함 (1 = 면 1개 … 6 = 전개도 전체)
+// 칸 격자는 접는 선이 칸 경계가 되도록 짝수로 나눔 → 칸의 대칭도 칸
+const dice = { cs: 1, cols: 0, rows: 0, x0: 0, z0: 0, own: null, meshes: [], count: [0, 0], shots: [0, 0] };
+
+// 정육면체 전개도 11가지 (칸 좌표)
+const CUBE_NETS = [
+  [[0, 0], [0, 1], [1, 1], [2, 1], [3, 1], [0, 2]],
+  [[0, 0], [0, 1], [1, 1], [2, 1], [3, 1], [1, 2]],
+  [[0, 0], [0, 1], [1, 1], [2, 1], [3, 1], [2, 2]],
+  [[0, 0], [0, 1], [1, 1], [2, 1], [3, 1], [3, 2]],
+  [[1, 0], [0, 1], [1, 1], [2, 1], [3, 1], [1, 2]],
+  [[1, 0], [0, 1], [1, 1], [2, 1], [3, 1], [2, 2]],
+  [[0, 0], [1, 0], [1, 1], [2, 1], [3, 1], [1, 2]],
+  [[0, 0], [1, 0], [1, 1], [2, 1], [3, 1], [2, 2]],
+  [[0, 0], [1, 0], [1, 1], [2, 1], [3, 1], [3, 2]],
+  [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2], [3, 2]],
+  [[0, 0], [1, 0], [2, 0], [2, 1], [3, 1], [4, 1]],
+];
+// 주사위 눈 위치 (면 한 변 = 1)
+const PIPS = {
+  1: [[0.5, 0.5]],
+  2: [[0.27, 0.27], [0.73, 0.73]],
+  3: [[0.27, 0.27], [0.5, 0.5], [0.73, 0.73]],
+  4: [[0.27, 0.27], [0.73, 0.27], [0.27, 0.73], [0.73, 0.73]],
+  5: [[0.27, 0.27], [0.73, 0.27], [0.5, 0.5], [0.27, 0.73], [0.73, 0.73]],
+  6: [[0.27, 0.24], [0.73, 0.24], [0.27, 0.5], [0.73, 0.5], [0.27, 0.76], [0.73, 0.76]],
+};
+const faceTexCache = {};
+function faceTexture(c, n) {
+  const key = c + '-' + n;
+  return faceTexCache[key] ??= canvasTex(128, g => {
+    g.fillStyle = hexCss(COLORS[c]); g.fillRect(0, 0, 128, 128);
+    g.lineWidth = 10; g.strokeStyle = hexCss(new THREE.Color(COLORS[c]).multiplyScalar(0.55).getHex());
+    g.strokeRect(5, 5, 118, 118);
+    for (const [x, y] of PIPS[n]) {
+      g.beginPath(); g.arc(x * 128, y * 128, 11, 0, Math.PI * 2);
+      g.fillStyle = '#fff'; g.fill(); g.lineWidth = 3; g.strokeStyle = '#2b2b2b'; g.stroke();
+    }
+  });
+}
+
+// 주사위: 겉 그룹(위치·좌우 회전) 안에 몸체. BoxGeometry 면 순서 +x −x +y −y +z −z
+const DIE_ORDER = [3, 4, 1, 6, 2, 5];
+const TOP_ROT = { 1: [0, 0, 0], 6: [Math.PI, 0, 0], 2: [-Math.PI / 2, 0, 0], 5: [Math.PI / 2, 0, 0],
+  3: [0, 0, Math.PI / 2], 4: [0, 0, -Math.PI / 2] };   // 이 회전이면 해당 눈이 위로
+const dieSize = () => dice.cs * 0.72;
+function makeDie(c, value) {
+  const s = dieSize();
+  const body = outline(mesh(new THREE.BoxGeometry(s, s, s),
+    DIE_ORDER.map(n => toon(0xffffff, { map: faceTexture(c, n) }))), 0.03);
+  const root = addT(new THREE.Group());
+  root.add(body);
+  root.rotation.y = Math.random() * Math.PI * 2;
+  root.userData = { body, top: TOP_ROT[value], spin: [rand(3, 6), rand(2, 5), rand(3, 6)].map(v => v * Math.PI) };
+  return root;
+}
+// k = 0 → 마구 구르는 중, 1 → 나온 눈이 위
+function dieSpin(die, k) {
+  const { body, top, spin } = die.userData;
+  body.rotation.set(top[0] + spin[0] * (1 - k), top[1] + spin[1] * (1 - k), top[2] + spin[2] * (1 - k));
+}
+
+function setupDice() {
+  const cs = dice.cs = CFG.dice.cell[settings.bomb];
+  let cols = Math.floor(BW / cs), rows = Math.floor(BD / cs);
+  if (axis === 'v' && cols % 2) cols--;
+  if (axis === 'h' && rows % 2) rows--;
+  Object.assign(dice, { cols, rows, x0: -cols * cs / 2, z0: -rows * cs / 2 });
+  dice.own = new Int8Array(cols * rows).fill(-1);
+  dice.meshes = new Array(cols * rows).fill(null);
+  dice.count = [0, 0]; dice.shots = [0, 0];
+
+  const pts = [], x1 = -dice.x0, z1 = -dice.z0;
+  for (let i = 0; i <= cols; i++) { const x = dice.x0 + i * cs; pts.push(x, 0, dice.z0, x, 0, z1); }
+  for (let j = 0; j <= rows; j++) { const z = dice.z0 + j * cs; pts.push(dice.x0, 0, z, x1, 0, z); }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(drapeSegments(pts), 3));
+  addT(new THREE.LineSegments(geo,
+    new THREE.LineBasicMaterial({ color: 0x6d6a62, transparent: true, opacity: 0.35 })));
+}
+
+const diceCell = p => [Math.floor((p.x - dice.x0) / dice.cs), Math.floor((p.z - dice.z0) / dice.cs)];
+const diceIn = ([i, j]) => i >= 0 && j >= 0 && i < dice.cols && j < dice.rows;
+const diceCenter = ([i, j]) => ({ x: dice.x0 + (i + 0.5) * dice.cs, z: dice.z0 + (j + 0.5) * dice.cs });
+const dicePct = c => dice.own ? Math.round(dice.count[c] / dice.own.length * 1000) / 10 : 0;
+
+const diceFree = c => diceIn(c) && dice.own[c[1] * dice.cols + c[0]] === -1;
+
+// 펼칠 면 정하기 (쏜 쪽이 뽑아서 온라인으로 같이 보냄)
+// 떨어진 칸(root)부터 전개도의 이웃 면을 따라 value개를 펼치되, 모든 면이 빈 칸이어야 함.
+// 전개도 11종 × 뒤집기 × 회전 × 바닥 면을 섞어서 되는 모양을 찾음. 하나도 안 되면 null (주사위 무효)
+// → [{ c: 칸, p: 붙어 나온 면 번호(바닥 = -1), n: 눈 }]
+function diceFaces(root, value) {
+  if (!diceFree(root)) return null;
+  const combos = [];
+  for (let n = 0; n < CUBE_NETS.length; n++) for (let f = 0; f < 2; f++) for (let r = 0; r < 4; r++)
+    for (let st = 0; st < 6; st++) combos.push([n, f, r, st]);
+  combos.sort(() => Math.random() - 0.5);
+  for (const [n, f, r, start] of combos) {
+    let net = CUBE_NETS[n].map(([x, y]) => [f ? -x : x, y]);
+    for (let t = 0; t < r; t++) net = net.map(([x, y]) => [-y, x]);
+    const [sx, sy] = net[start];
+    const cell = k => [root[0] + net[k][0] - sx, root[1] + net[k][1] - sy];
+    // 바닥 면에서 빈 칸인 이웃 면을 하나씩 무작위로 붙여 나감
+    const order = [{ k: start, p: -1 }], used = new Set([start]);
+    while (order.length < value) {
+      const opts = [];
+      order.forEach((o, q) => net.forEach((c, k) => {
+        if (!used.has(k) && Math.abs(c[0] - net[o.k][0]) + Math.abs(c[1] - net[o.k][1]) === 1 && diceFree(cell(k)))
+          opts.push({ k, p: q });
+      }));
+      if (!opts.length) break;
+      const pick = opts[Math.random() * opts.length | 0];
+      used.add(pick.k); order.push(pick);
+    }
+    if (order.length < value) continue;
+    const others = [1, 2, 3, 4, 5, 6].filter(v => v !== value).sort(() => Math.random() - 0.5);
+    return order.map((o, q) => ({ c: cell(o.k), p: o.p, n: q ? others[q - 1] : value }));
+  }
+  return null;
+}
+
+// 칸 차지 (diceFaces가 빈 칸만 골라 주므로 그대로 칠함)
+function diceClaim(faces, c) {
+  for (const f of faces) { dice.own[f.c[1] * dice.cols + f.c[0]] = c; dice.count[c]++; }
+}
+
+// 펼쳐진 면(타일): 윗면을 잘게 나눠서 정점마다 지형 높이를 구움 → 비탈에서도 땅에 붙음
+// at = { x, z, refY }: 타일 중심의 세계 위치와, 타일을 매단 경첩의 높이
+function makeTile(c, n, at) {
+  const s = dice.cs * 0.92, geo = new THREE.BoxGeometry(s, 0.06, s, 4, 1, 4);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++)
+    pos.setY(i, pos.getY(i) + terrainH(at.x + pos.getX(i), at.z + pos.getZ(i)) - at.refY + 0.035);
+  geo.computeVertexNormals();
+  const side = toon(new THREE.Color(COLORS[c]).multiplyScalar(0.7).getHex());
+  const top = toon(0xffffff, { map: faceTexture(c, n) });
+  return outline(mesh(geo, [side, side, top, side, side, side], false), 0.02);
+}
+
+// 전개도가 펼쳐지는 연출: 주사위가 바닥 면으로 가라앉고, 면들이 붙어 있던 모서리를 축으로 차례로 젖혀짐
+async function diceUnfoldAnim(faces, c, die) {
+  const id = game, base = terrainH(die.position.x, die.position.z);
+  await tween(160, k => { die.scale.setScalar(1 - 0.7 * k); die.position.y = base + dieSize() / 2 * (1 - k); });
+  remT(die);
+  for (const f of faces) {
+    if (id !== game) return;
+    const pos = diceCenter(f.c), hinge = addT(new THREE.Group());
+    if (f.p < 0) {
+      const hy = terrainH(pos.x, pos.z);
+      hinge.add(makeTile(c, f.n, { x: pos.x, z: pos.z, refY: hy }));
+      hinge.position.set(pos.x, hy, pos.z);
+      await tween(160, k => hinge.scale.setScalar(0.3 + 0.7 * k), ease.outBack);
+    } else {
+      const pp = diceCenter(faces[f.p].c);
+      const dx = Math.round((pos.x - pp.x) / dice.cs), dz = Math.round((pos.z - pp.z) / dice.cs);
+      const hx = pp.x + dx * dice.cs / 2, hz = pp.z + dz * dice.cs / 2, hy = terrainH(hx, hz);
+      const tile = makeTile(c, f.n, { x: pos.x, z: pos.z, refY: hy });
+      tile.position.set(dx * dice.cs / 2, 0, dz * dice.cs / 2);
+      hinge.add(tile);
+      hinge.position.set(hx, hy, hz);
+      // 부모 면 위에 뒤집혀 포개진 상태(±π)에서 0으로 젖혀짐
+      const from = dx ? dx * Math.PI : -dz * Math.PI;
+      const set = a => { if (dx) hinge.rotation.z = a; else hinge.rotation.x = a; };
+      set(from);
+      await tween(190, k => set(from * (1 - k)), ease.outCubic);
+    }
+    if (id !== game) return;
+    sfx.hop();
+    dice.meshes[f.c[1] * dice.cols + f.c[0]] = hinge;
+  }
+}
+
 // ================= 캐릭터 움직임 =================
+// ================= 거울 숨바꼭질 =================
+// 상대는 안 보임. 찍힌 자리에서 상대가 있는 쪽을 ↑↓←→ 중 하나로만 알려주고,
+// 스침 반경 × qMul 안이면 '?', 맞으면 피해. 물감 자국은 안 사라지고 캐릭터가 못 밟음.
+const paints = [];                 // 물감 자국 { x, z, r } — 못 밟는 곳
+const hideLast = [null, null];     // 각 구역이 마지막으로 쏜 결과 { q, hint } (AI가 피할 때 참고)
+let hideShots = [0, 0];
+const hideQ = () => HIT_EDGE * CFG.hide.qMul;
+const paintR = () => markSize() * 0.35;
+const viewerZone = () => isOnline() ? net.me : 0;
+const hiddenFrom = ch => MODE === 'hide' && phase !== 'over' && ch.zone !== viewerZone();
+const HINT_WORD = { '←': '왼쪽', '→': '오른쪽', '↑': '위쪽', '↓': '아래쪽' };
+function hintDir(dx, dz) {
+  return Math.abs(dx) >= Math.abs(dz) ? (dx < 0 ? '←' : '→') : (dz < 0 ? '↑' : '↓');
+}
+const onPaint = q => paints.some(pt => Math.hypot(q.x - pt.x, q.z - pt.z) < pt.r + 0.3 - 1e-6);
+
+// 물감과 겹치면 바깥으로 밀어냄 (밀어도 안 되면 제자리)
+function avoidPaint(ch, q) {
+  for (let it = 0; it < 5; it++) {
+    let moved = false;
+    for (const pt of paints) {
+      const dx = q.x - pt.x, dz = q.z - pt.z, d = Math.hypot(dx, dz), need = pt.r + 0.3;
+      if (d >= need) continue;
+      q = d > 1e-6 ? { x: pt.x + dx / d * need, z: pt.z + dz / d * need } : { x: pt.x + need, z: pt.z };
+      moved = true;
+    }
+    if (!moved) return q;
+    q = clampMoveRaw(ch, q);
+  }
+  return onPaint(q) ? { ...ch.pos } : q;
+}
+
+function hideLabel(p, text, color) {
+  const s = tagSprite(text, color);
+  s.position.set(p.x, terrainH(p.x, p.z) + 0.55, p.z);
+  s.scale.set(0.7, 0.7, 1);
+  addT(s);
+}
+
+// ---- AI의 추측: 상대 구역을 0.5m 칸으로 나눠 "있을 가능성"을 들고 있음 ----
+// 쏠 때마다 받은 힌트로 가능성을 걸러내고, 상대가 움직일 걸 생각해 턴마다 번지게 함
+const hideAI = { w: null, ok: null, cols: 0, rows: 0, cs: 0.5, started: false };
+const hideCellPos = (i, j) => ({ x: -BW / 2 + (i + 0.5) * hideAI.cs, z: -BD / 2 + (j + 0.5) * hideAI.cs });
+function hideAINorm() {
+  const w = hideAI.w;
+  let s = 0;
+  for (let k = 0; k < w.length; k++) { if (!hideAI.ok[k]) w[k] = 0; s += w[k]; }
+  if (s <= 1e-9) { for (let k = 0; k < w.length; k++) w[k] = hideAI.ok[k]; s = w.reduce((a, b) => a + b, 0) || 1; }
+  for (let k = 0; k < w.length; k++) w[k] /= s;
+}
+function hideAIInit() {
+  const cs = hideAI.cs;
+  hideAI.cols = Math.ceil(BW / cs); hideAI.rows = Math.ceil(BD / cs);
+  hideAI.w = new Float32Array(hideAI.cols * hideAI.rows);
+  hideAI.ok = new Uint8Array(hideAI.w.length);
+  hideAI.started = false;
+  const zf = 0;   // AI는 늘 B(구역 1) → 찾을 상대는 구역 0
+  for (let j = 0; j < hideAI.rows; j++) for (let i = 0; i < hideAI.cols; i++) {
+    const c = hideCellPos(i, j), q = clampSpot(c, zf);
+    hideAI.ok[j * hideAI.cols + i] = q.x === c.x && q.z === c.z ? 1 : 0;
+  }
+  hideAI.w.set(hideAI.ok);
+  hideAINorm();
+}
+function hideAIDiffuse() {
+  const { w, cols, rows, cs } = hideAI, rb = Math.max(1, Math.round(moveR() * 0.6 / cs));
+  const tmp = new Float32Array(w.length);
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    let s = 0, n = 0;
+    for (let k = -rb; k <= rb; k++) { const a = i + k; if (a >= 0 && a < cols) { s += w[j * cols + a]; n++; } }
+    tmp[j * cols + i] = s / n;
+  }
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    let s = 0, n = 0;
+    for (let k = -rb; k <= rb; k++) { const b = j + k; if (b >= 0 && b < rows) { s += tmp[b * cols + i]; n++; } }
+    w[j * cols + i] = s / n;
+  }
+  hideAINorm();
+}
+function hideAILearn(shot) {
+  if (shot.out) return;
+  const { w, cols, rows } = hideAI, q = mirror(shot.land), Q = hideQ(), tol = 0.25;
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    const k = j * cols + i;
+    if (!w[k]) continue;
+    const c = hideCellPos(i, j), dx = c.x - q.x, dz = c.z - q.z, d = Math.hypot(dx, dz);
+    const ok = shot.hint === 'hit' ? d <= HIT_EDGE + tol
+      : shot.hint === '?' ? d > HIT_EDGE - tol && d <= Q + tol
+      : d > Q - tol && hintDir(dx, dz) === shot.hint;
+    w[k] *= ok ? 1 : 0.02;
+  }
+  hideAINorm();
+}
+// 상대가 있을 확률이 가장 큰 자리(스침 반경 안의 합이 최대)를 찍을 곳으로 고름
+function aiHideTarget() {
+  if (hideAI.started) hideAIDiffuse();
+  hideAI.started = true;
+  const noise = CFG.hide.noise[settings.ai], { w, ok, cols, rows, cs } = hideAI, rc = Math.ceil(HIT_EDGE / cs);
+  let best = null, bs = -1;
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    if (!ok[j * cols + i]) continue;
+    let s = 0;
+    for (let dj = -rc; dj <= rc; dj++) for (let di = -rc; di <= rc; di++) {
+      const a = i + di, b = j + dj;
+      if (a < 0 || b < 0 || a >= cols || b >= rows || Math.hypot(di, dj) * cs > HIT_EDGE) continue;
+      s += w[b * cols + a];
+    }
+    s *= Math.max(0.05, 1 + gauss() * noise);
+    if (s > bs) { bs = s; best = [i, j]; }
+  }
+  return best ? hideCellPos(...best) : clampSpot({ x: 0, z: 0 }, 0);
+}
+// AI 자리 잡기: 상대가 받은 힌트가 틀리게 되는 쪽으로, 상대의 마지막 물감에서 멀리 (쉬움은 거의 랜덤)
+function aiHideSpot(me, landAt) {
+  const R = moveR(), lp = hideLast[0];
+  let best = me.pos, bs = -Infinity;
+  for (let i = 0; i < 30; i++) {
+    const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * R;
+    const c = clampMove(me, { x: me.moveFrom.x + Math.cos(a) * r, z: me.moveFrom.z + Math.sin(a) * r });
+    let s = rand(0, 1.5);
+    if (settings.ai !== 'easy' && lp) {
+      const dx = c.x - lp.q.x, dz = c.z - lp.q.z, d = Math.hypot(dx, dz);
+      s += d * 0.5 + (lp.hint === '?' || lp.hint === 'hit' ? (d > hideQ() ? 2 : 0) : hintDir(dx, dz) !== lp.hint ? 3 : 0);
+    }
+    s -= Math.abs(Math.hypot(c.x - landAt.x, c.z - landAt.z) - 4) * 0.3;   // 너무 멀면 바람을 많이 탐
+    if (s > bs) { bs = s; best = c; }
+  }
+  return best;
+}
+
+// ================= 표지판 레이스 =================
+// 동시 진행. 종이는 가로 접는 선으로 위·아래, 두 사람은 아래쪽에서 각자 레인(왼쪽 A / 오른쪽 B)에 서고,
+// 표지판은 접는 선 건너편(위) 자기 레인 바로 맞은편에 섬. 각자 쏘는 대로 각자 레인의 필름만 접힘.
+// B의 표지판은 A의 것을 좌우로 뒤집은 자리 → 똑같은 문제. 바람은 일정 시간마다 바뀌고 둘에게 똑같이 적용.
+const sign = { n: 6, pts: [], winds: [], idx: [0, 0], miss: [0, 0], shots: [0, 0], fin: [0, 0], done: [false, false], mesh: [null, null] };
+let raceT0 = 0, raceOn = false;
+const raceElapsed = () => Math.round(performance.now() - raceT0);
+
+// 레인 i의 사격 자리 (아래쪽 절반, 접는 선·칸막이·가장자리에서 띄움)
+function laneSpot(i) {
+  const x = rand(1.4, BW / 2 - 1.2);
+  return { x: i === 0 ? -x : x, z: rand(1.4, BD / 2 - 1.0) };
+}
+
+function genSign() {
+  const n = +settings.signs || 6, pts = [], winds = [];
+  for (let k = 0; k < n; k++) {
+    let p;
+    for (let t = 0; t < 60; t++) {   // A 레인 위쪽 절반 (접는 선에서 1.8m 이상)
+      p = { x: -rand(1.4, BW / 2 - 1.2), z: -rand(1.8, BD / 2 - 1.0) };
+      if (k && Math.hypot(p.x - pts[k - 1].x, p.z - pts[k - 1].z) < 3) continue;
+      break;
+    }
+    pts.push({ x: round2(p.x), z: round2(p.z) });
+  }
+  for (let k = 0; k < 80; k++) {   // 시간 슬롯별 바람 (80 × windSec 동안 충분)
+    const w = rollWind({});
+    winds.push({ str: w.str, angle: round2(w.angle) });
+  }
+  return { pts, winds };
+}
+const signPoint = (i, k) => i === 0 ? sign.pts[k] : { x: -sign.pts[k].x, z: sign.pts[k].z };
+const signTarget = i => signPoint(i, Math.min(sign.idx[i], sign.n - 1));
+
+function setupSign(data) {
+  Object.assign(sign, { n: data.pts.length, pts: data.pts, winds: data.winds,
+    idx: [0, 0], miss: [0, 0], shots: [0, 0], fin: [0, 0], done: [false, false], mesh: [null, null] });
+  raceOn = false;
+  signPop(0); signPop(1);
+}
+
+function makeSignMesh(i, num, p) {
+  const g = new THREE.Group(), color = COLORS[i];
+  const post = outline(mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.5, 8), toon(0x8a6a45)), 0.02);
+  post.position.y = 0.75; g.add(post);
+  const board = outline(mesh(new THREE.BoxGeometry(1.25, 0.8, 0.1), toon(0xfff6d6)), 0.03);
+  board.position.y = 1.55; g.add(board);
+  const stripe = mesh(new THREE.BoxGeometry(1.25, 0.14, 0.12), toon(color), false);
+  stripe.position.y = 1.9; g.add(stripe);
+  const n = tagSprite(String(num), color);   // 스프라이트라 위에서 봐도 보임
+  n.scale.set(0.75, 0.75, 1); n.position.set(0, 1.5, 0.15); g.add(n);
+  // 맞히는 범위(스침 반경)를 바닥에 원으로 표시
+  for (const [r0, r1, op] of [[0.05, HIT_EDGE, 0.22], [HIT_EDGE - 0.07, HIT_EDGE, 0.85]]) {
+    const geo = conform(new THREE.RingGeometry(r0, r1, 48, 4), p.x, p.z, 1, 1, 0.04);
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false, side: THREE.DoubleSide }));
+    m.rotation.x = -Math.PI / 2; m.renderOrder = 3; g.add(m);
+  }
+  return g;
+}
+
+// i의 표지판을 지금 차례(idx)의 것으로 교체: 기존 것은 접혀 사라지고 새 것이 팝업
+function signPop(i) {
+  const old = sign.mesh[i], k = sign.idx[i];
+  sign.mesh[i] = null;
+  if (old) tween(220, t => old.scale.setScalar(Math.max(0.01, 1 - t)), ease.inQuad).then(() => remT(old));
+  if (k >= sign.n) return;
+  const p = signPoint(i, k), g = makeSignMesh(i, k + 1, p);
+  g.position.set(p.x, terrainH(p.x, p.z), p.z);
+  g.scale.setScalar(0.01);
+  addT(g);
+  sign.mesh[i] = g;
+  wait(old ? 260 : 300).then(() => { sfx.hop(); tween(380, t => g.scale.setScalar(Math.max(0.01, t)), ease.outBack); });
+}
+
+// 승자: 더 많이 맞힌 쪽(완주) > 실수 적은 쪽 > 먼저 끝낸 쪽. 모두 같으면 무승부(-1)
+// (끝낸 시각 fin = 마지막 명중 샷을 쏜 시각 — 쏜 쪽이 재서 보내므로 두 화면의 결과가 같음)
+function signWinner() {
+  const key = i => [-sign.idx[i], sign.miss[i], sign.done[i] && sign.idx[i] >= sign.n ? Math.round(sign.fin[i] / 100) : 0];
+  const a = key(0), b = key(1);
+  for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k] < b[k] ? 0 : 1;
+  return -1;
+}
+
+// 바람: 두 사람 공통. 시간 슬롯마다 정해진 값으로 바뀜 (방장이 정한 목록을 둘 다 씀)
+const raceTurnText = () => raceOn ? `⏱ ${(raceElapsed() / 1000).toFixed(1)}초` : '준비!';
+const raceWindText = () => {
+  const slotMs = CFG.sign.windSec * 1000;
+  return `${windLabel()} · ${Math.ceil((slotMs - raceElapsed() % slotMs) / 1000)}초 뒤 변경`;
+};
+function raceTick(now) {
+  if (!raceOn || phase === 'over') return;
+  const w = sign.winds[Math.floor((now - raceT0) / (CFG.sign.windSec * 1000)) % sign.winds.length];
+  if (wind.str !== w.str || wind.angle !== w.angle) { Object.assign(wind, w); updateHud(); }
+  const a = raceTurnText(), b = raceWindText();
+  if ($('turnText').textContent !== a) $('turnText').textContent = a;
+  if ($('windText').textContent !== b) $('windText').textContent = b;
+}
+
+// 한 발이 끝난 뒤(둘 중 누구든): 종료 조건 확인 → 내 차례면 다시 조준
+function raceAfter(i) {
+  if (phase === 'over') return;
+  if (sign.shots[i] >= sign.n * CFG.sign.maxShotsMul) sign.done[i] = true;   // 한도 → 더 못 쏨(미완주)
+  if (sign.done[0] && sign.done[1]) return gameOver(signWinner());
+  // 한쪽이 완주했고 다른 쪽 실수가 이미 더 많으면 더 기다릴 필요 없음 (동점이면 시간 싸움이라 계속)
+  for (const a of [0, 1]) if (sign.idx[a] >= sign.n && sign.miss[1 - a] > sign.miss[a]) return gameOver(a);
+  if (i === turn) {
+    if (sign.done[i]) { phase = 'wait'; players[i].ring.visible = false; }
+    else { phase = 'aim'; players[i].moveFrom = { ...players[i].pos }; }
+    updateHud();
+  }
+}
+
+// 한 발 (내 것이든 상대 것이든 같은 코드): 날아가 → 내 레인 필름이 접혀 → 대칭 자리에 찍힘 → 명중 판정
+async function raceFire(i, shot) {
+  const id = game, me = players[i], color = COLORS[i], local = i === turn;
+  if (local) { phase = 'flight'; me.ring.visible = false; }
+  else { me.netPos = null; me.pos = { ...shot.pos }; }
+  const { aim, land } = shot;
+  me.faceTarget = Math.atan2(aim.x - me.pos.x, aim.z - me.pos.z);
+  const S = gunTip(me), d = Math.hypot(aim.x - S.x, aim.z - S.z);
+  const drift = { x: shot.land0.x - aim.x, z: shot.land0.z - aim.z };
+  sfx.shoot();
+  tween(220, k => { me.sq = 0.82 + 0.18 * k; }, ease.outBack);
+  await flyBall(me, S, aim, drift, d, null, 1);
+  if (id !== game) return;
+  const tex = splatTexture(shot.shapes), mir = mirror(land);
+  sfx.splat();
+  const tally = () => {
+    if (phase === 'over') return;
+    sign.shots[i]++;
+    if (shot.hit) {
+      sign.idx[i]++;
+      const fin = sign.idx[i] >= sign.n;
+      if (fin) { sign.done[i] = true; sign.fin[i] = shot.t; }
+      sfx.hit(); floater(mir, fin ? '완주!' : '명중!', '#ffdd33', false, 2.4);
+      signPop(i);
+    } else {
+      sign.miss[i]++; sfx.miss();
+      floater(shot.out ? land : mir, shot.out ? '레인 밖! 실수 +1' : `빗나감 +1 · ${shot.dist.toFixed(1)}m`, '#fff', true, 1.6);
+    }
+    updateHud();
+  };
+  if (shot.out) {                                 // 레인 밖 → 찍히지 않고 실수
+    if (onPaper(land)) addMark(land, tex, 0x999999, false, 0.6);
+    tally();
+    await wait(900);
+    if (id !== game) return;
+    return raceAfter(i);
+  }
+  addMark(land, tex, color, false, 0.6);
+  await wait(300);
+  if (id !== game) return;
+  // 내 레인(아래쪽 절반의 반쪽) 필름만 접힘
+  const pivot = addT(new THREE.Group());
+  pivot.position.y = filmY();
+  const sheet = new THREE.Mesh(new THREE.PlaneGeometry(BW / 2, BD / 2), new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false,
+  }));
+  sheet.rotation.x = -Math.PI / 2; sheet.castShadow = true;
+  sheet.position.set(i === 0 ? -BW / 4 : BW / 4, -0.05, BD / 4);
+  sheet.add(new THREE.LineSegments(new THREE.EdgesGeometry(sheet.geometry), new THREE.LineBasicMaterial({ color: 0x2b2b2b })));
+  pivot.add(sheet);
+  const wet = splatMesh(tex, color);
+  wet.position.set(land.x, -0.035, land.z);
+  wet.renderOrder = 1e6;
+  pivot.add(wet);
+  const setAngle = th => { pivot.rotation.x = -th; };
+  sfx.whoosh();
+  await tween(720, k => setAngle(k * Math.PI), ease.inCubic);
+  if (id !== game) return;
+  sfx.stamp();
+  shake = local ? 0.35 : 0.15;
+  addMark(mir, tex, color, true);
+  tally();
+  await wait(300);
+  if (id !== game) return;
+  await tween(620, k => setAngle((1 - k) * Math.PI), ease.outCubic);
+  if (id !== game) return;
+  remT(pivot);
+  await wait(300);
+  if (id !== game) return;
+  raceAfter(i);
+}
+
+// AI: 자기 속도로 계속 쏨 — 가까이 다가가(바람 줄이기) 생각하고 쏘는 데 실력별 시간이 걸림
+async function raceAI(id) {
+  const me = players[1], foe = players[0], [lo, hi] = CFG.sign.think[settings.ai];
+  await wait(rand(800, 1500));
+  while (id === game && phase !== 'over' && !sign.done[1]) {
+    const t0 = performance.now();
+    me.moveFrom = { ...me.pos };
+    const landAt = mirror(signTarget(1));
+    const spot = aiApproach(me, landAt);
+    if (Math.hypot(spot.x - me.pos.x, spot.z - me.pos.z) > 0.3) {
+      sfx.hop();
+      await hopTo(me, spot);
+      if (id !== game) return;
+    }
+    const left = rand(lo, hi) * 1000 - (performance.now() - t0);
+    if (left > 0) await wait(left);
+    if (id !== game || phase === 'over') return;
+    const shot = computeShot(me, foe, aimFor(me, landAt));   // 바람은 쏘는 순간의 값
+    shot.t = raceElapsed();
+    await raceFire(1, shot);
+  }
+}
+
+// 준비 → 시작: 두 사람이 동시에 출발. 시간은 시작 신호부터
+async function raceStart(id) {
+  phase = 'ready'; raceOn = false;
+  turn = isOnline() ? net.me : 0;   // 이 화면에서 조작하는 쪽 (레이스에선 turn = 내 번호)
+  Object.assign(wind, sign.winds[0]);
+  updateHud();
+  await banner('준비!', `표지판 ${sign.n}개 · 빗맞힘이 적은 쪽이 승리`, CSS_COLORS[turn]);
+  if (id !== game) return;
+  banner('시작!', '동시에 쏴요', '#ffdd33');
+  raceT0 = performance.now(); raceOn = true;
+  const me = players[turn];
+  me.moveFrom = { ...me.pos }; me.ring.visible = true;
+  phase = 'aim';
+  updateHud();
+  if (settings.opp === 'ai') raceAI(id);
+}
+
 async function dropIn(ch, delay) {
   await wait(delay);
   await tween(550, k => { ch.hopY = 9 * (1 - k); }, ease.inQuad);
@@ -802,22 +1873,44 @@ function squashFromSheet(th, z) {
     if (ch.zone === z || ch.flat) continue;
     const d = distToHinge(ch.pos);
     let s = 1;
-    if (a < Math.PI / 2 && d <= L * Math.cos(a) + 0.5) s = clamp((d * Math.tan(a)) / 2.05, 0.14, 1);
+    if (a < Math.PI / 2 && d <= L * Math.cos(a) + 0.5) s = clamp((filmY() - terrainH(ch.pos.x, ch.pos.z) + d * Math.tan(a)) / 2.05, 0.14, 1);
     ch.sq = s;
   }
 }
 
 // ================= 발사 → 비행 → 접기 → 찍기 =================
-async function flyBall(me, S, aim, drift, d) {
+// 포물선 높이: 지형이 있는 판에서는 낮게 던져서 언덕이 실제로 앞을 막을 수 있게 함 (평지는 예전 그대로)
+const arcOf = d => terrain.length ? 0.45 + 0.1 * d : 0.8 + 0.22 * d;
+// 공 궤적: 진행도 k(0~1)의 위치. S = 총구, endY = 착탄 높이(지형 높이 + 주사위 반쪽)
+function flightAt(S, aim, drift, arcH, endY, k) {
+  return {
+    x: S.x + (aim.x - S.x) * k + drift.x * k * k,
+    y: S.y + (endY - S.y) * k + arcH * 4 * k * (1 - k),
+    z: S.z + (aim.z - S.z) * k + drift.z * k * k,
+  };
+}
+// 날아가다 언덕에 부딪히는지: 처음 부딪히는 진행도와 자리 (안 막히면 k = 1, 원래 착탄점)
+function traceFlight(S, aim, land0, d) {
+  if (!terrain.length) return { k: 1, land: land0, blocked: false };
+  const drift = { x: land0.x - aim.x, z: land0.z - aim.z }, arcH = arcOf(d), endY = terrainH(land0.x, land0.z);
+  for (let i = 2; i <= 44; i++) {
+    const k = i / 48, p = flightAt(S, aim, drift, arcH, endY, k);
+    if (terrainH(p.x, p.z) + 0.1 > p.y) return { k, land: { x: p.x, z: p.z }, blocked: true };
+  }
+  return { k: 1, land: land0, blocked: false };
+}
+
+async function flyBall(me, S, aim, drift, d, die = null, kEnd = 1) {
   const color = COLORS[me.zone];
-  const ball = addT(outline(mesh(new THREE.SphereGeometry(0.17, 16, 12), toon(color)), 0.03));
-  const dur = 450 + d * 70, arcH = 0.8 + d * 0.22;
+  const ball = die ?? addT(outline(mesh(new THREE.SphereGeometry(0.17, 16, 12), toon(color)), 0.03));
+  const lift = die ? dieSize() / 2 : 0;
+  const dur = (450 + d * 70) * Math.max(0.4, kEnd), arcH = arcOf(d);
+  const endY = terrainH(aim.x + drift.x, aim.z + drift.z) + lift;
   let lastDrop = 0;
-  await tween(dur, k => {
-    ball.position.set(
-      S.x + (aim.x - S.x) * k + drift.x * k * k,
-      S.y * (1 - k) + arcH * 4 * k * (1 - k),
-      S.z + (aim.z - S.z) * k + drift.z * k * k);
+  await tween(dur, t => {
+    const p = flightAt(S, aim, drift, arcH, endY, t * kEnd);
+    ball.position.set(p.x, p.y, p.z);
+    if (die) dieSpin(die, Math.min(1, t * 1.15));
     const now = performance.now();
     if (now - lastDrop > 35) {
       lastDrop = now;
@@ -826,28 +1919,64 @@ async function flyBall(me, S, aim, drift, d) {
       drops.push({ m: dm, t0: now });
     }
   });
-  remT(ball);
+  if (!die) return remT(ball);
+  sfx.hop();
+  const hy = terrainH(die.position.x, die.position.z);
+  await tween(260, k => { die.position.y = hy + lift + Math.sin(k * Math.PI) * 0.35; });
+  die.position.y = hy + lift;
 }
 
 // 발사 결과를 미리 계산 (착탄점·데미지). 온라인에선 쏜 쪽이 계산해 보내고 받는 쪽은 그대로 씀
 // → 브라우저마다 소수점 계산이 미세하게 달라도 판정이 어긋나지 않음
+// 날아가다 언덕에 걸리면 그 자리가 착탄점 (land0 = 안 막혔다면 떨어졌을 자리, kEnd = 날아간 비율)
 function computeShot(me, foe, aim) {
   const S = gunTip(me, Math.atan2(aim.x - me.pos.x, aim.z - me.pos.z));
   const d = Math.hypot(aim.x - S.x, aim.z - S.z);
   const wv = windVec();
-  const land = { x: aim.x + wv.x * DRIFT * d, z: aim.z + wv.z * DRIFT * d };
-  const out = !inZone(land, me.zone);
+  const land0 = { x: aim.x + wv.x * DRIFT * d, z: aim.z + wv.z * DRIFT * d };
+  const tr = traceFlight(S, aim, land0, d), land = tr.land;
   const mir = mirror(land);
   const dist = Math.hypot(mir.x - foe.pos.x, mir.z - foe.pos.z);
-  const dmg = out ? 0 : dist <= HIT_CORE ? DMG_CORE : dist <= HIT_EDGE ? DMG_EDGE : 0;
-  return { aim: { x: aim.x, z: aim.z }, pos: { ...me.pos }, land, out, dist, dmg };
+  const base = { aim: { x: aim.x, z: aim.z }, pos: { ...me.pos }, land, land0, kEnd: tr.k, blocked: tr.blocked, dist, shapes: splatShapes() };
+  if (MODE === 'classic') {
+    const out = !inZone(land, me.zone);
+    const dmg = out ? 0 : dist <= HIT_CORE ? DMG_CORE : dist <= HIT_EDGE ? DMG_EDGE : 0;
+    return { ...base, out, dmg };
+  }
+  // 숨바꼭질: 맞으면 피해, 아니면 힌트 (스침 반경 × qMul 안이면 '?', 밖이면 상대가 있는 쪽 ↑↓←→)
+  if (MODE === 'hide') {
+    const out = !inZone(land, me.zone);
+    const dmg = out ? 0 : dist <= HIT_CORE ? CFG.hide.dmg[0] : dist <= HIT_EDGE ? CFG.hide.dmg[1] : 0;
+    const hint = out ? null : dmg ? 'hit' : dist <= hideQ() ? '?' : hintDir(foe.pos.x - mir.x, foe.pos.z - mir.z);
+    return { ...base, out, dmg, hint };
+  }
+  // 표지판: 찍히는 자리가 내 표지판(반경 = 스침 반경) 안이면 명중. 장외·빗맞힘은 실수 +1
+  if (MODE === 'sign') {
+    const out = !inZone(land, me.zone), t = signTarget(me.zone);
+    const sd = Math.hypot(mir.x - t.x, mir.z - t.z);
+    return { ...base, out, hit: !out && sd <= HIT_EDGE, dist: sd };
+  }
+  // 오목: 종이 밖으로 나가면 무효
+  if (MODE === 'omok') {
+    const out = !onPaper(land);
+    return { ...base, out, cell: out ? null : snapCell(mir) };
+  }
+  // 주사위: 내 구역 밖이면 장외. 대칭 칸에 떨어져 눈 수만큼 펼쳐짐(자리가 모자라면 faces = null → 못 펼침)
+  // 상대 캐릭터 정타면 6 (전개도 전체)
+  const out = !inZone(land, me.zone);
+  const big = !out && dist <= HIT_CORE;
+  const value = big ? 6 : 1 + (Math.random() * 6 | 0);
+  const root = diceCell(mir);
+  const to = diceIn(root) ? diceCenter(root) : { ...mir };
+  return { ...base, out, big, value, to, faces: out ? null : diceFaces(root, value) };
 }
 
 // 내 화면에서 발사 (사람 차례)
 function shoot(aim) {
   const shot = computeShot(players[turn], players[1 - turn], aim);
+  if (MODE === 'sign') shot.t = raceElapsed();   // 레이스: 쏜 시각 (끝낸 시각 비교용)
   if (isOnline()) netSend({ t: 'fire', shot });
-  fire(shot);
+  if (MODE === 'sign') raceFire(turn, shot); else fire(shot);
 }
 
 async function fire(shot) {
@@ -857,37 +1986,46 @@ async function fire(shot) {
   const { aim, land } = shot;
   me.faceTarget = Math.atan2(aim.x - me.pos.x, aim.z - me.pos.z);
   const S = gunTip(me);
+  const die = MODE === 'dice' ? makeDie(turn, shot.value) : null;
   const d = Math.hypot(aim.x - S.x, aim.z - S.z);
   aiAim = null; remoteAim = null;
-  const drift = { x: land.x - aim.x, z: land.z - aim.z };
+  const drift = { x: shot.land0.x - aim.x, z: shot.land0.z - aim.z };
+  lastShot = shot;
 
   sfx.shoot();
   tween(220, k => { me.sq = 0.82 + 0.18 * k; }, ease.outBack);
-  await flyBall(me, S, aim, drift, d);
+  // 숨바꼭질: 총구에서 날아가면 쏜 사람 위치가 들키므로, 물감이 하늘에서 착탄점으로 뚝 떨어짐
+  if (MODE === 'hide') await flyBall(me, new THREE.Vector3(land.x, 9, land.z), land, { x: 0, z: 0 }, 1, die, 1);
+  else await flyBall(me, S, aim, drift, d, die, shot.kEnd);
   if (id !== game) return;
 
-  const tex = splatTexture();
+  const tex = splatTexture(shot.shapes);
   const color = COLORS[turn];
   sfx.splat();
+  if (shot.blocked && !shot.out) { floater(land, '언덕에 막혔다!', '#fff', true, 2.2); sfx.miss(); }
 
   if (shot.out) {
-    if (Math.abs(land.x) <= BW / 2 && Math.abs(land.z) <= BD / 2) addMark(land, tex, 0x999999, false, 0.6);
-    floater(land, '장외! 무효', '#fff');
+    if (die) { const hy = terrainH(die.position.x, die.position.z); tween(500, k => { die.position.y = hy + dieSize() / 2 - 2 * k * k; }).then(() => remT(die)); }
+    else if (onPaper(land)) addMark(land, tex, 0x999999, false, 0.6);
+    floater(land, ownZoneOnly() ? '장외! 무효' : '종이 밖! 무효', '#fff');
     sfx.miss();
     await wait(1300);
     if (id !== game) return;
-    return nextTurn(id);
+    return endShot(id);
   }
 
-  addMark(land, tex, color);
+  // 오목·땅따먹기: 착탄 자국은 필름 위 물감일 뿐(곧 사라짐) → 반투명
+  if (die) floater(land, `🎲 ${shot.value}`, CSS_COLORS[turn], true, 1.2);
+  else if (MODE !== 'hide') addMark(land, tex, color, false, MODE === 'classic' ? 1 : 0.6);
   await wait(350);
   if (id !== game) return;
 
-  // ---- 접기: 쏜 쪽 구역의 투명 필름이 접는 선을 축으로 넘어감 ----
+  // ---- 접기: 착탄한 쪽 구역의 투명 필름이 접는 선을 축으로 넘어감 ----
+  // (체력전은 늘 쏜 사람 구역, 오목·땅따먹기는 종이 어디든 쏠 수 있어서 착탄한 쪽)
   phase = 'fold';
-  const z = turn;
+  const z = MODE === 'classic' ? turn : zoneOf(land);
   const pivot = addT(new THREE.Group());
-  pivot.position.y = 0.08;
+  pivot.position.y = filmY();
   const w = axis === 'v' ? BW / 2 : BW, h = axis === 'v' ? BD : BD / 2;
   const sheet = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({
     color: 0xffffff, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false,
@@ -898,10 +2036,14 @@ async function fire(shot) {
   sheet.add(new THREE.LineSegments(new THREE.EdgesGeometry(sheet.geometry),
     new THREE.LineBasicMaterial({ color: 0x2b2b2b })));
   pivot.add(sheet);
-  const wet = splatMesh(tex, color);
-  wet.position.set(land.x, -0.035, land.z);
-  wet.renderOrder = 1e6;
-  pivot.add(wet);
+  if (!die) {
+    const wet = splatMesh(tex, color);
+    wet.position.set(land.x, -0.035, land.z);
+    wet.renderOrder = 1e6;
+    pivot.add(wet);
+  }
+  // 주사위는 필름과 함께 접는 선을 넘어 대칭 칸으로 폴짝
+  const dieTo = die && shot.to;
 
   const setAngle = th => {
     if (axis === 'v') pivot.rotation.z = z === 0 ? -th : th;
@@ -910,23 +2052,69 @@ async function fire(shot) {
   };
 
   sfx.whoosh();
-  await tween(720, k => setAngle(k * Math.PI), ease.inCubic);
+  await tween(720, k => {
+    setAngle(k * Math.PI);
+    if (!die) return;
+    const h0 = terrainH(land.x, land.z), h1 = terrainH(dieTo.x, dieTo.z);
+    die.position.set(land.x + (dieTo.x - land.x) * k, h0 + (h1 - h0) * k + dieSize() / 2 + Math.sin(k * Math.PI) * 2.2, land.z + (dieTo.z - land.z) * k);
+    die.userData.yaw ??= die.rotation.y;
+    die.rotation.y = die.userData.yaw + k * Math.PI * 2;
+  }, ease.inCubic);
   if (id !== game) return;
 
   // ---- 찍기 ----
   const mir = mirror(land);
   sfx.stamp();
   shake = 0.35;
-  addMark(mir, tex, color, true);
-  const { dist, dmg } = shot;
-  if (dmg) {
-    foe.hp = Math.max(0, foe.hp - dmg);
-    hurt(foe); sfx.hit();
-    floater(foe.pos, dmg === DMG_CORE ? `정타! -${dmg}` : `스침 -${dmg}`, dmg === DMG_CORE ? '#ffdd33' : '#fff', false, 3.2);
-    if (foe.hp <= 0) foe.flat = true;
-  } else {
-    sfx.miss();
-    floater(mir, `빗나감 · ${dist.toFixed(1)}m`, '#fff', true);
+  let winLine = null, unfolding = null;
+  if (MODE === 'omok') winLine = omokStamp(shot);
+  else if (MODE === 'dice') {
+    if (shot.big) { hurt(foe); sfx.hit(); floater(foe.pos, '정타! 전개도 전체', '#ffdd33', false, 3.2); }
+    if (shot.faces) {
+      diceClaim(shot.faces, turn);
+      unfolding = diceUnfoldAnim(shot.faces, turn, die);
+      floater(dieTo, `${shot.value}면 · +${shot.value}칸`, CSS_COLORS[turn]);
+    } else {
+      // 빈 칸이 눈 수만큼 이어져 있지 않음 → 주사위 전체 무효, 부르르 떨다 사라짐
+      sfx.miss();
+      floater(dieTo, `${shot.value} · 펼칠 자리 부족!`, '#fff');
+      const x0 = die.position.x;
+      unfolding = tween(700, k => {
+        die.position.x = x0 + Math.sin(k * 40) * 0.08 * (1 - k);
+        die.scale.setScalar(1 - k * k);
+      }).then(() => remT(die));
+    }
+  }
+  else {
+    addMark(mir, tex, color, true);
+    if (MODE === 'hide') {
+      // 물감은 못 밟는 자리로 남고, 찍힌 자리에 힌트 표지가 붙음 (상대 위치는 안 드러냄)
+      paints.push({ x: mir.x, z: mir.z, r: paintR() });
+      hideLast[turn] = { q: { x: mir.x, z: mir.z }, hint: shot.hint };
+      const hit = shot.dmg > 0;
+      hideLabel(mir, hit ? '!' : shot.hint, color);
+      if (hit) {
+        foe.hp = Math.max(0, foe.hp - shot.dmg);
+        hurt(foe); sfx.hit();
+        const core = shot.dmg === CFG.hide.dmg[0];
+        floater(mir, core ? `정타! -${shot.dmg}` : `스침 -${shot.dmg}`, core ? '#ffdd33' : '#fff', false, 2.2);
+        if (foe.hp <= 0) foe.flat = true;
+      } else {
+        sfx.miss();
+        floater(mir, shot.hint === '?' ? '? 아주 가까워요' : `상대는 ${HINT_WORD[shot.hint]}`, '#fff', true, 1.6);
+      }
+    } else {
+      const { dist, dmg } = shot;
+      if (dmg) {
+        foe.hp = Math.max(0, foe.hp - dmg);
+        hurt(foe); sfx.hit();
+        floater(foe.pos, dmg === DMG_CORE ? `정타! -${dmg}` : `스침 -${dmg}`, dmg === DMG_CORE ? '#ffdd33' : '#fff', false, 3.2);
+        if (foe.hp <= 0) foe.flat = true;
+      } else {
+        sfx.miss();
+        floater(mir, `빗나감 · ${dist.toFixed(1)}m`, '#fff', true);
+      }
+    }
   }
   updateHud();
 
@@ -935,6 +2123,7 @@ async function fire(shot) {
   await tween(620, k => setAngle((1 - k) * Math.PI), ease.outCubic);
   if (id !== game) return;
   remT(pivot);
+  if (unfolding) { await unfolding; if (id !== game) return; updateHud(); }
 
   // 눌렸던 캐릭터가 뿅 하고 복원
   for (const ch of players) {
@@ -945,7 +2134,37 @@ async function fire(shot) {
   await wait(550);
   if (id !== game) return;
 
-  if (foe.hp <= 0) return gameOver(turn);
+  if ((MODE === 'classic' || MODE === 'hide') && foe.hp <= 0) return gameOver(turn);
+  if (winLine) {
+    // 5목 돌이 차례로 통통 튐
+    winLine.forEach(([i, j], n) => {
+      const m = omok.meshes[i][j], y0 = m.position.y;
+      wait(n * 90).then(() => tween(420, k => { m.position.y = y0 + Math.sin(k * Math.PI) * 0.7; }));
+    });
+    floater(cellPos(winLine[0]), `${winLine.length}목!`, '#ffdd33');
+    return gameOver(turn);
+  }
+  endShot(id);
+}
+
+// 한 발이 끝난 뒤: 모드별 종료 조건 확인 → 아니면 다음 차례
+function endShot(id) {
+  if (MODE === 'omok') {
+    omok.shots++;
+    if (omok.shots >= CFG.omok.maxShots || !omok.grid.some(col => col.includes(-1))) return gameOver(-1);
+  } else if (MODE === 'dice') {
+    dice.shots[turn]++;
+    if (dice.shots.every(s => s >= CFG.dice.shots) || !dice.own.includes(-1)) {
+      const [a, b] = dice.count;
+      return gameOver(a === b ? -1 : a > b ? 0 : 1);
+    }
+  } else if (MODE === 'hide') {
+    hideShots[turn]++;
+    if (hideShots.every(s => s >= CFG.hide.maxShots)) {   // 발사 한도 → 체력 많은 쪽 승
+      const [a, b] = players.map(p => p.hp);
+      return gameOver(a === b ? -1 : a > b ? 0 : 1);
+    }
+  }
   nextTurn(id);
 }
 
@@ -957,8 +2176,8 @@ function nextTurn(id) {
 async function beginTurn(id, relocate) {
   phase = 'relocate';
   players.forEach(p => { p.ring.visible = false; });
-  // 물감 자국: 턴마다 35%로 흐려지고, 충분히 옅어지면 사라짐 (약 2턴 뒤 소멸)
-  for (const m of [...marks]) {
+  // 물감 자국: 턴마다 35%로 흐려지고, 충분히 옅어지면 사라짐 (약 2턴 뒤 소멸). 숨바꼭질은 그대로 남음
+  for (const m of MODE === 'hide' ? [] : [...marks]) {
     const from = m.material.opacity, to = from * 0.35 < 0.1 ? 0 : from * 0.35;
     tween(500, k => { m.material.opacity = from + (to - from) * k; }).then(() => {
       if (to > 0 || !marks.includes(m)) return;
@@ -974,7 +2193,7 @@ async function beginTurn(id, relocate) {
     if (id !== game) return;
     spots = m.spots; nextWind = m.wind;
   } else {
-    if (relocate && settings.move === 'auto') spots = players.map(p => randomSpot(p.zone, p.pos));
+    if (relocate && moveMode() === 'auto') spots = players.map(p => randomSpot(p.zone, p.pos));
     nextWind = rollWind({});
     if (isOnline()) netSend({ t: 'turn', spots, wind: nextWind });
   }
@@ -985,8 +2204,9 @@ async function beginTurn(id, relocate) {
   }
   Object.assign(wind, nextWind);
   updateHud();
-  const windTxt = wind.str ? `바람 ${wind.str}단계` : '바람 없음';
-  const steps = settings.move === 'manual' && !isAI(turn) && !isRemote(turn);
+  let windTxt = wind.str ? `바람 ${wind.str}단계` : '바람 없음';
+  if (MODE === 'dice') windTxt += ` · 주사위 ${CFG.dice.shots - dice.shots[turn]}개 남음`;
+  const steps = moveMode() === 'manual' && !isAI(turn) && !isRemote(turn);
   await banner(`${turnLabel(turn)}!`, steps ? `캐릭터 끌기 = 이동 · 빈 곳 클릭 = 발사 · ${windTxt}` : windTxt, CSS_COLORS[turn]);
   if (id !== game) return;
   const me = players[turn];
@@ -1013,29 +2233,35 @@ async function remoteTurn(id) {
 
 // ================= 직접 이동 =================
 // 발사 차례 안에서: 내 캐릭터를 끌면 이동, 빈 곳을 클릭하면 발사 (버튼 없음)
-const moveR = () => CFG.map[settings.map].move;
-const canMove = () => settings.move === 'manual' && phase === 'aim' && !isAI(turn) && !isRemote(turn);
+// 숨바꼭질은 위치 추적이 가능하도록 직접 이동만, 이동 거리도 짧게
+const moveMode = () => MODE === 'hide' || MODE === 'sign' ? 'manual' : settings.move;
+const moveR = () => CFG.map[settings.map].move * (MODE === 'hide' ? CFG.hide.moveMul : 1);
+const canMove = () => moveMode() === 'manual' && phase === 'aim' && !isAI(turn) && !isRemote(turn);
 let hoverChar = false;   // 마우스가 내 캐릭터 위 → 이동 범위 미리 보여주고 조준점은 숨김
 
 // 캐릭터가 설 수 있는 자리: 접는 선에서 1.1m, 판 가장자리에서 0.9m 떨어진 내 구역 안
 const clampSpot = (p, z) => clampToZone(p, z, 1.1, 0.9);
 
 // 이동 기준점에서 반경 이내 + 설 수 있는 자리로 제한
-function clampMove(ch, p) {
+function clampMoveRaw(ch, p) {
   const o = ch.moveFrom;
   let dx = p.x - o.x, dz = p.z - o.z;
   const d = Math.hypot(dx, dz), R = moveR();
   if (d > R) { dx *= R / d; dz *= R / d; }
   return clampSpot({ x: o.x + dx, z: o.z + dz }, ch.zone);
 }
+const clampMove = (ch, p) => {
+  const q = clampMoveRaw(ch, p);
+  return MODE === 'hide' ? avoidPaint(ch, q) : q;   // 숨바꼭질: 물감 위로는 못 감
+};
 
 // 이동 가능 범위 표시 (원판 + 테두리)
 const moveArea = new THREE.Group();
 // 실제로 설 수 있는 영역만 보이도록 4개 평면으로 잘라냄 (접는 선 쪽 1.1m, 가장자리 0.9m)
 const moveClip = [0, 1, 2, 3].map(() => new THREE.Plane());
 renderer.localClippingEnabled = true;
-const moveDiscMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.1, depthWrite: false, clippingPlanes: moveClip });
-const moveEdgeMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.6, depthWrite: false, clippingPlanes: moveClip });
+const moveDiscMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.1, depthWrite: false, depthTest: false, clippingPlanes: moveClip });
+const moveEdgeMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.6, depthWrite: false, depthTest: false, clippingPlanes: moveClip });
 const moveDisc = new THREE.Mesh(new THREE.CircleGeometry(1, 64), moveDiscMat);
 const moveEdge = new THREE.Mesh(new THREE.RingGeometry(0.985, 1, 64), moveEdgeMat);
 for (const m of [moveDisc, moveEdge]) { m.rotation.x = -Math.PI / 2; moveArea.add(m); }
@@ -1049,10 +2275,16 @@ function updateMoveArea() {
   moveArea.visible = show;
   if (!show) return;
   moveArea.position.x = me.moveFrom.x; moveArea.position.z = me.moveFrom.z;
+  moveArea.position.y = terrainH(me.moveFrom.x, me.moveFrom.z) + 0.08;
   moveArea.scale.set(moveR(), 1, moveR());   // 눕힌 원판이라 바닥면(x, z)으로 키움
   moveDiscMat.color.setHex(COLORS[turn]); moveEdgeMat.color.setHex(COLORS[turn]);
   const hx = BW / 2 - 0.9, hz = BD / 2 - 0.9, sgn = turn === 0 ? -1 : 1;
-  if (axis === 'v') {
+  if (MODE === 'sign') {   // 내 레인(아래쪽 절반): 칸막이에서 1.1m, 접는 선에서 1.1m, 가장자리 0.9m
+    moveClip[0].set(new THREE.Vector3(sgn, 0, 0), -1.1);
+    moveClip[1].set(new THREE.Vector3(-sgn, 0, 0), hx);
+    moveClip[2].set(new THREE.Vector3(0, 0, 1), -1.1);
+    moveClip[3].set(new THREE.Vector3(0, 0, -1), hz);
+  } else if (axis === 'v') {
     moveClip[0].set(new THREE.Vector3(sgn, 0, 0), -1.1);     // 접는 선에서 1.1m
     moveClip[1].set(new THREE.Vector3(-sgn, 0, 0), hx);      // 바깥 가장자리
     moveClip[2].set(new THREE.Vector3(0, 0, 1), hz);
@@ -1075,15 +2307,18 @@ const gauss = () => {
 function clampToZone(p, z, m = 0.25, e = 0.2) {
   const hx = BW / 2 - e, hz = BD / 2 - e;
   let { x, z: pz } = p;
-  if (axis === 'v') { x = z === 0 ? clamp(x, -hx, -m) : clamp(x, m, hx); pz = clamp(pz, -hz, hz); }
+  if (MODE === 'sign') { x = z === 0 ? clamp(x, -hx, -m) : clamp(x, m, hx); pz = clamp(pz, m, hz); }   // 레인(z) 안, 아래쪽 절반
+  else if (axis === 'v') { x = z === 0 ? clamp(x, -hx, -m) : clamp(x, m, hx); pz = clamp(pz, -hz, hz); }
   else { pz = z === 0 ? clamp(pz, -hz, -m) : clamp(pz, m, hz); x = clamp(x, -hx, hx); }
   return { x, z: pz };
 }
 
 // AI 조준: ① 상대의 대칭 위치 ② 바람 보정(실력만큼) ③ 사람 같은 눈대중 오차
-function aiPlan(me, foe) {
+const aiPlan = (me, foe) => aimFor(me, mirror(foe.pos));
+
+// target = 공이 떨어져야 할 자리. 거기로 떨어지게 바람을 거슬러 겨누고 눈대중 오차를 섞음
+function aimFor(me, target) {
   const skill = CFG.ai[settings.ai];
-  const target = mirror(foe.pos);
   const wv = windVec();
   let aim = { ...target };
   for (let i = 0; i < 6; i++) {
@@ -1096,7 +2331,78 @@ function aiPlan(me, foe) {
   const sigma = skill.sigma * (0.6 + 0.8 * distToHinge(target) / span);
   aim.x += gauss() * sigma;
   aim.z += gauss() * sigma;
-  return clampToZone(aim, me.zone);
+  return clampAim(aim, me.zone);
+}
+
+// 오목 AI: 칸마다 (내 줄 가치 + 막을 가치)를 매기고, 실력만큼 흔들어서 고름
+function omokValue(i, j, c) {
+  let sum = 0;
+  for (const [di, dj] of DIRS) {
+    let n = 1, open = 0;
+    for (const s of [1, -1]) {
+      let a = i + di * s, b = j + dj * s;
+      while (omok.grid[a]?.[b] === c) { n++; a += di * s; b += dj * s; }
+      if (omok.grid[a]?.[b] === -1) open++;
+    }
+    if (n >= 5) sum += 1e6;
+    else if (!open) continue;
+    else if (n === 4) sum += open === 2 ? 5e4 : 5e3;
+    else if (n === 3) sum += open === 2 ? 3e3 : 200;
+    else if (n === 2) sum += open === 2 ? 150 : 20;
+    else sum += open === 2 ? 4 : 1;
+  }
+  return sum;
+}
+function aiOmokTarget(me) {
+  const noise = CFG.omok.noise[settings.ai];
+  let best = null, bs = -Infinity;
+  omok.grid.forEach((col, i) => col.forEach((v, j) => {
+    let s;
+    if (v === -1) s = omokValue(i, j, me) * 1.1 + omokValue(i, j, 1 - me);
+    else if (v === 1 - me) s = 0.8 * omokValue(i, j, 1 - me);   // 상대 돌을 탁하게 만들어 끊기
+    else return;
+    s *= Math.max(0.05, 1 + gauss() * noise);
+    if (s > bs) { bs = s; best = [i, j]; }
+  }));
+  return cellPos(best);
+}
+
+// 주사위 AI: 상대 구역의 빈 칸마다 "이어진 빈 칸 수"로 펼칠 수 있는 눈을 어림해 기대 칸 수를 매김
+// (이어진 빈 칸이 3개면 1~3이 나올 때만 펼쳐짐 → (1+2+3)/6). 상대 캐릭터 정타(6)도 노려봄
+function diceRoom(root, cap = 6) {
+  if (!diceFree(root)) return 0;
+  const seen = new Set([root.join()]), q = [root];
+  for (let n = 0; n < q.length && seen.size < cap; n++) {
+    const [i, j] = q[n];
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const c = [i + di, j + dj];
+      if (seen.size < cap && !seen.has(c.join()) && diceFree(c)) { seen.add(c.join()); q.push(c); }
+    }
+  }
+  return seen.size;
+}
+const diceExpect = room => room * (room + 1) / 2 / 6;
+function aiDiceTarget(me, foe) {
+  const D = CFG.dice, noise = D.noise[settings.ai];
+  let best = null, bs = -Infinity;
+  const pick = (cell, s) => { s *= Math.max(0.05, 1 + gauss() * noise); if (s > bs) { bs = s; best = cell; } };
+  for (let j = 0; j < dice.rows; j++) for (let i = 0; i < dice.cols; i++) {
+    if (!inZone(diceCenter([i, j]), 1 - me.zone)) continue;   // 내 구역에 쏘면 찍히는 곳은 상대 구역
+    const room = diceRoom([i, j]);
+    if (room) pick([i, j], diceExpect(room));
+  }
+  const fc = diceCell(foe.pos);
+  if (diceRoom(fc) >= 6) pick(fc, 6 * D.pHit[settings.ai]);
+  if (!best) return diceCenter(diceCell(mirror(clampToZone(me.pos, me.zone))));   // 빈 칸이 없으면 아무 데나
+  return best === fc ? { ...foe.pos } : diceCenter(best);
+}
+
+// 오목·땅따먹기 AI 이동: 겨눌 자리 쪽으로 다가가 사격 거리를 줄임 (바람을 덜 탐)
+function aiApproach(me, aimPt) {
+  const dx = aimPt.x - me.pos.x, dz = aimPt.z - me.pos.z, d = Math.hypot(dx, dz), keep = 2;
+  if (d <= keep + 0.3) return me.pos;
+  const k = (d - keep) / d;
+  return clampMove(me, { x: me.pos.x + dx * k, z: me.pos.z + dz * k });
 }
 
 // AI 자리 잡기 (직접 이동 모드): 내 사격 거리 = 상대 사격 거리이므로
@@ -1114,30 +2420,47 @@ function aiChooseSpot(me, foe) {
   return best;
 }
 
-let aiAim = null, remoteAim = null;
+let aiAim = null, remoteAim = null, lastShot = null;
 async function aiTurn(id) {
   phase = 'ai';
   updateHud();
   while (menuOpen) { await wait(150); if (id !== game) return; }
   const me = players[turn], foe = players[1 - turn];
-  if (settings.move === 'manual') {
+  // 찍고 싶은 자리 → 공이 떨어져야 할 자리는 그 대칭
+  const stampAt = MODE === 'omok' ? aiOmokTarget(turn) : MODE === 'dice' ? aiDiceTarget(me, foe)
+    : MODE === 'hide' ? aiHideTarget() : null;   // 숨바꼭질은 추측만 씀(상대 위치를 모름)
+  const landAt = stampAt ? mirror(stampAt) : null;
+  if (moveMode() === 'manual') {
     await wait(300);
-    const spot = aiChooseSpot(me, foe);
+    let spot = MODE === 'hide' ? aiHideSpot(me, landAt) : landAt ? aiApproach(me, landAt) : aiChooseSpot(me, foe);
+    // 언덕에 막힐 자리면 다른 자리를 몇 군데 시험 (쉬움은 눈치 못 챔)
+    if (terrain.length && settings.ai !== 'easy') {
+      const blockedAt = pt => {
+        const keep = me.pos; me.pos = pt;
+        const plan = landAt ? aimFor(me, landAt) : aiPlan(me, foe);
+        const S = gunTip(me, Math.atan2(plan.x - pt.x, plan.z - pt.z)), d = Math.hypot(plan.x - S.x, plan.z - S.z), wv = windVec();
+        const r = traceFlight(S, plan, { x: plan.x + wv.x * DRIFT * d, z: plan.z + wv.z * DRIFT * d }, d).blocked;
+        me.pos = keep; return r;
+      };
+      for (let i = 0; i < 14 && blockedAt(spot); i++)
+        spot = landAt ? clampMove(me, { x: me.moveFrom.x + rand(-moveR(), moveR()), z: me.moveFrom.z + rand(-moveR(), moveR()) })
+          : aiChooseSpot(me, foe);
+    }
     if (Math.hypot(spot.x - me.pos.x, spot.z - me.pos.z) > 0.3) {
       sfx.hop();
       await hopTo(me, spot);
       if (id !== game) return;
     }
   }
-  const plan = aiPlan(me, foe);
+  const plan = landAt ? aimFor(me, landAt) : aiPlan(me, foe);
   // 조준점이 이리저리 흔들리다 목표로 수렴 (고민하는 연출)
-  const from = clampToZone({
+  const from = clampAim({
     x: (me.pos.x + plan.x) / 2 + rand(-1.5, 1.5), z: (me.pos.z + plan.z) / 2 + rand(-1.5, 1.5),
   }, me.zone);
   const p1 = rand(0, 6), p2 = rand(0, 6);
   await tween(rand(1100, 1800), k => {
     const w = (1 - k) * 0.6;
-    aiAim = clampToZone({
+    aiAim = clampAim({
       x: from.x + (plan.x - from.x) * k + Math.sin(k * 9 + p1) * w,
       z: from.z + (plan.z - from.z) * k + Math.cos(k * 7 + p2) * w,
     }, me.zone);
@@ -1146,21 +2469,24 @@ async function aiTurn(id) {
   aiAim = { ...plan };
   await wait(350);
   if (id !== game) return;
-  fire(computeShot(me, foe, plan));
+  const shot = computeShot(me, foe, plan);
+  if (MODE === 'hide') hideAILearn(shot);   // AI도 받은 힌트로만 추측을 갱신
+  fire(shot);
 }
 
+// w = 이긴 쪽, -1 = 무승부
 function gameOver(w) {
   phase = 'over';
-  turn = w;
+  const draw = w < 0;
+  if (!draw) { turn = w; players[w].winner = true; }
   players.forEach(p => { p.ring.visible = false; });
-  players[w].winner = true;
   sfx.win();
-  const c = players[w].pos;
+  const c = draw ? { x: 0, z: 0 } : players[w].pos;
   for (let i = 0; i < 160; i++) {
     const m = addT(new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.22), new THREE.MeshBasicMaterial({
       color: new THREE.Color().setHSL(Math.random(), 0.85, 0.6), side: THREE.DoubleSide,
     })));
-    m.position.set(c.x + rand(-0.5, 0.5), 2.5, c.z + rand(-0.5, 0.5));
+    m.position.set(c.x + rand(-0.5, 0.5), 2.5 + terrainH(c.x, c.z), c.z + rand(-0.5, 0.5));
     m.userData = {
       v: new THREE.Vector3(rand(-4, 4), rand(5, 10), rand(-4, 4)),
       r: new THREE.Vector3(rand(-9, 9), rand(-9, 9), rand(-9, 9)), t0: performance.now(),
@@ -1170,9 +2496,22 @@ function gameOver(w) {
   updateHud();
   setTimeout(() => {
     if (phase !== 'over') return;
-    $('overText').textContent = isOnline() ? (w === net.me ? '승리!' : '패배…')
+    $('overText').textContent = draw ? '무승부!' : isOnline() ? (w === net.me ? '승리!' : '패배…')
       : settings.opp !== 'ai' ? `${NAMES[w]} 승리!` : w === 0 ? '승리!' : 'AI 승리…';
-    $('overText').style.color = CSS_COLORS[w];
+    $('overText').style.color = draw ? 'var(--ink)' : CSS_COLORS[w];
+    if (MODE === 'dice') {
+      const sub = document.createElement('div');
+      sub.style.fontSize = '22px';
+      sub.textContent = `A ${dice.count[0]}칸 · B ${dice.count[1]}칸`;
+      $('overText').appendChild(sub);
+    }
+    if (MODE === 'sign') {
+      // 실수(메인) · 발사 수 · 클리어 시간(시작 신호부터 마지막 표지판을 맞힌 때까지)을 모두 보여줌
+      const sub = document.createElement('div'), names = playerNames();
+      sub.style.cssText = 'font-size:20px;line-height:1.6;white-space:pre-line;color:var(--ink);-webkit-text-stroke:0';
+      sub.textContent = [0, 1].map(i => `${names[i]}: ${sign.idx[i]}/${sign.n}개 · 실수 ${sign.miss[i]} · 발사 ${sign.shots[i]}발 · ${sign.idx[i] >= sign.n ? (sign.fin[i] / 1000).toFixed(1) + '초' : '미완주'}`).join('\n');
+      $('overText').appendChild(sub);
+    }
     $('over').hidden = false;
   }, 1400);
 }
@@ -1193,47 +2532,72 @@ function clearWorld() {
 function applySettings() {
   ({ w: BW, d: BD } = CFG.map[settings.map]);
   ({ core: HIT_CORE, edge: HIT_EDGE } = CFG.bomb[settings.bomb]);
-  axis = settings.axis;
+  MODE = settings.mode;
+  axis = MODE === 'sign' ? 'h' : settings.axis;   // 레이스는 늘 가로 접는 선 (두 사람이 아래쪽에 나란히)
   windsock.root.position.z = -BD / 2 - 1.4;
+  // 조준 원 = 찍히는 크기 (오목은 돌, 땅따먹기는 주사위 칸)
+  const R = MODE === 'omok' ? 0.35 * CFG.omok.gap[settings.bomb] : MODE === 'dice' ? 0.5 * CFG.dice.cell[settings.bomb]
+    : MODE === 'sign' || MODE === 'hide' ? HIT_EDGE : HIT_CORE;
   ringMesh.geometry.dispose();
-  ringMesh.geometry = new THREE.RingGeometry(HIT_CORE - 0.08, HIT_CORE, 40);
+  ringMesh.geometry = new THREE.RingGeometry(Math.max(0.05, R - 0.08), R, 40);
   ticks.forEach((t, i) => {
     const a = i * Math.PI / 2;
-    t.position.set(Math.cos(a) * (HIT_CORE + 0.12), 0, Math.sin(a) * (HIT_CORE + 0.12));
+    t.position.set(Math.cos(a) * (R + 0.12), 0, Math.sin(a) * (R + 0.12));
   });
   fitCamera();
 }
 
 // start = 온라인 참가자가 방장에게 받은 시작 정보 { s: 판 설정, pos: 시작 위치 }
 async function newGame(start) {
+  await Promise.race([charModelsReady, new Promise(r => setTimeout(r, 8000))]);   // 물감이 모델 로딩 (늦으면 도형 캐릭터)
   const id = ++game;
   netResetInbox();
   clearWorld();
   if (start) Object.assign(settings, start.s, { opp: 'online' });
   applySettings();
   aiAim = null; remoteAim = null;
+  setTerrain([]);   // 늘 평지 (언덕·산은 접히는 구간이 어색해서 뺌)
   buildBoard();
+  if (MODE === 'omok') setupOmok();
+  if (MODE === 'dice') setupDice();
+  paints.length = 0; hideLast[0] = hideLast[1] = null; hideShots = [0, 0];
+  if (MODE === 'hide') hideAIInit();
+  if (MODE === 'sign') setupSign(start?.sign ?? genSign());   // 온라인 참가자는 방장이 보낸 표지판·바람을 그대로 씀
   dragging = null;
-  $('help').textContent = settings.move === 'manual'
+  const moveTip = moveMode() === 'manual' ? '내 캐릭터를 끌면 이동, ' : '';
+  $('help').textContent = MODE === 'hide'
+    ? `상대는 안 보여요! ${moveTip}내 구역에 쏘면 대칭 자리에 찍히고, 그 자리에서 상대가 있는 쪽(↑↓←→)을 알려줘요. 가까우면 ?(근처), 맞히면 피해. 물감 위로는 못 가요. 체력을 먼저 다 깎으면 승리.`
+    : MODE === 'sign'
+    ? `둘이 동시에 달려요! ${moveTip}내 레인 아래쪽에 쏘면 접는 선 건너편 대칭 자리에 찍혀요. 맞은편 내 표지판의 동그라미 안에 찍으면 명중 → 다음 표지판! 바람은 ${CFG.sign.windSec}초마다 바뀌고 둘이 똑같아요. 빗맞힘이 적은 쪽이 승리(같으면 먼저 끝낸 쪽).`
+    : MODE === 'omok'
+    ? `${moveTip}종이 아무 데나 쏘면 접는 선 건너편 대칭 자리에 내 돌이 찍혀요. 상대 돌에 찍히면 섞여서 탁한 돌! 5목을 먼저 만들면 승리.`
+    : MODE === 'dice'
+    ? `${moveTip}내 구역에 주사위를 던지면 접는 선 건너편 대칭 칸으로 넘어가 나온 눈 수만큼 전개도가 펼쳐져요(1 = 면 1개 … 6 = 6개). 이미 찬 칸에는 못 펼쳐서, 빈 칸이 모자라면 그 주사위는 무효! 상대 캐릭터 정타면 무조건 6. ${CFG.dice.shots}개씩 던지고 칸 많은 쪽 승리.`
+    : moveMode() === 'manual'
     ? '내 캐릭터를 끌면 이동(원 안), 내 구역 빈 곳을 클릭하면 발사! 이동은 안 해도 돼요. 멀리 쏠수록 바람을 더 타요.'
     : '내 구역을 클릭해서 물감총 발사! 바람에 밀린 자리가 접혀서 상대 구역에 찍혀요. 멀리 쏠수록 바람을 더 타요.';
   players = [makeChar(0), makeChar(1)];
-  players.forEach(p => { p.pos = start ? { ...start.pos[p.zone] } : randomSpot(p.zone); p.hopY = 9; });
+  players.forEach(p => {
+    p.pos = start ? { ...start.pos[p.zone] } : MODE === 'sign' ? laneSpot(p.zone) : randomSpot(p.zone);
+    p.hopY = 9;
+    if (MODE === 'sign') p.faceTarget = p.rig.rotation.y = Math.PI;   // 표지판(위쪽)을 바라봄
+  });
   if (isOnline() && net.host) {
-    const { bomb, wind: w, map, axis: ax, move } = settings;
-    netSend({ t: 'start', s: { bomb, wind: w, map, axis: ax, move }, pos: players.map(p => p.pos) });
+    const { mode, bomb, wind: w, map, terrain: tr, axis: ax, move, signs } = settings;
+    netSend({ t: 'start', s: { mode, bomb, wind: w, map, terrain: tr, axis: ax, move, signs }, pos: players.map(p => p.pos), terrain,
+      sign: MODE === 'sign' ? { pts: sign.pts, winds: sign.winds } : null });
   }
   turn = 0; wind.str = 0; phase = 'intro';
   updateHud();
   await Promise.all(players.map((p, i) => dropIn(p, 200 + i * 220)));
   if (id !== game) return;
-  beginTurn(id, false);
+  if (MODE === 'sign') raceStart(id); else beginTurn(id, false);
 }
 
 // ================= 조준 =================
 const aimGroup = new THREE.Group();
 scene.add(aimGroup);
-const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false });
+const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false, depthTest: false });
 const reticle = new THREE.Group();
 const ringMesh = new THREE.Mesh(new THREE.RingGeometry(HIT_CORE - 0.08, HIT_CORE, 40), reticleMat);
 ringMesh.rotation.x = -Math.PI / 2; reticle.add(ringMesh);
@@ -1267,24 +2631,33 @@ function pointerToGround(e) {
   const r = canvas.getBoundingClientRect();
   ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   raycaster.setFromCamera(ndc, camBaseCam);
+  // 언덕이 있으면 눈에 보이는 언덕 표면을 짚음 (평면 y=0과 어긋나므로)
+  if (terrain.length) {
+    const hit = raycaster.intersectObjects(terrainMeshes)[0];
+    if (hit) return { x: hit.point.x, z: hit.point.z };
+  }
   return raycaster.ray.intersectPlane(groundPlane, hitV) ? { x: hitV.x, z: hitV.z } : null;
 }
 
 function updateAim(now) {
   const me = players[turn];
   const a = phase === 'aim' && !dragging && !hoverChar ? aim : phase === 'ai' ? aiAim : phase === 'remote' ? remoteAim : null;
-  const ok = a && me && inZone(a, turn);
+  const ok = me && canAim(a) && !hiddenFrom(me);   // 숨바꼭질: 상대 조준점은 위치를 알려주니 안 보여줌
   aimGroup.visible = !!ok;
   if (!ok) return;
   me.faceTarget = Math.atan2(a.x - me.pos.x, a.z - me.pos.z);
   reticleMat.color.setHex(COLORS[turn]);
-  reticle.position.set(a.x, 0.03, a.z);
+  const ah = terrainH(a.x, a.z);
+  reticle.position.set(a.x, ah + 0.05, a.z);
   reticle.rotation.y = now * 0.0015;
-  const S = gunTip(me), d = Math.hypot(a.x - S.x, a.z - S.z), arcH = 0.8 + d * 0.22;
+  const S = gunTip(me), d = Math.hypot(a.x - S.x, a.z - S.z), arcH = arcOf(d);
+  // 언덕에 걸릴 것 같으면 점선이 거기서 끊기고 조준 원이 흐려짐 (바람은 미리 안 보여줌)
+  const tr = traceFlight(S, a, a, d), none = { x: 0, z: 0 };
+  reticleMat.opacity = tr.blocked ? 0.4 : 0.95;
   const pos = arcGeo.attributes.position;
   for (let i = 0; i <= ARC_N; i++) {
-    const k = i / ARC_N;
-    pos.setXYZ(i, S.x + (a.x - S.x) * k, S.y * (1 - k) + arcH * 4 * k * (1 - k), S.z + (a.z - S.z) * k);
+    const p = flightAt(S, a, none, arcH, ah, tr.k * i / ARC_N);
+    pos.setXYZ(i, p.x, p.y, p.z);
   }
   pos.needsUpdate = true;
   arcGeo.computeBoundingSphere();
@@ -1336,7 +2709,7 @@ canvas.addEventListener('pointerup', e => {
     if (isOnline()) netSend({ t: 'move', p: { ...me.pos } });   // 최종 위치는 바로 전송
     return;
   }
-  if (pressing && phase === 'aim' && aim && inZone(aim, turn)) shoot({ ...aim });
+  if (pressing && phase === 'aim' && canAim(aim)) shoot({ ...aim });
   pressing = false;
 });
 canvas.addEventListener('pointerleave', () => { if (!pressing) aim = null; hoverChar = false; });
@@ -1489,6 +2862,7 @@ function onNet(m) {
       break;
     case 'move':                                // 친구가 캐릭터를 끄는 중
       if (phase === 'remote') players[turn].netPos = m.p;
+      else if (MODE === 'sign' && players[1 - turn]) players[1 - turn].netPos = m.p;   // 레이스: turn = 내 번호
       break;
     case 'aim':                                 // 친구의 조준점
       if (phase === 'remote') remoteAim = m.p;
@@ -1497,6 +2871,10 @@ function onNet(m) {
       if (net.conn) { const c = net.conn; onNetClose(c); c.close(); }
       break;
     case 'turn': case 'fire': {
+      if (MODE === 'sign' && m.t === 'fire') {   // 레이스: 차례가 없어서 받는 즉시 상대 레인에서 재생
+        if (m.shot && phase !== 'over' && phase !== 'menu') raceFire(1 - turn, m.shot);
+        break;
+      }
       const i = waiters.findIndex(w => w.t === m.t);
       if (i >= 0) waiters.splice(i, 1)[0].r(m); else inbox.push(m);
       break;
@@ -1527,8 +2905,9 @@ let netLastT = 0, netLastKey = '';
 function netTick(now) {
   if (!isOnline() || !net.conn || phase !== 'aim' || isRemote(turn) || now - netLastT < 66) return;
   const me = players[turn];
-  const a = !dragging && !hoverChar && aim && inZone(aim, turn) ? { x: +aim.x.toFixed(3), z: +aim.z.toFixed(3) } : null;
-  const m = dragging ? { t: 'move', p: { ...me.pos } } : { t: 'aim', p: a };
+  const a = !dragging && !hoverChar && canAim(aim) ? { x: +aim.x.toFixed(3), z: +aim.z.toFixed(3) } : null;
+  const m = dragging ? { t: 'move', p: { ...me.pos } } : MODE === 'sign' ? null : { t: 'aim', p: a };   // 레이스는 조준점을 안 보냄
+  if (!m) return;
   const key = JSON.stringify(m);
   if (key === netLastKey) return;
   netLastT = now; netLastKey = key;
@@ -1562,18 +2941,37 @@ function renderMenu() {
   $('startBtn').hidden = draft.opp === 'online';
   document.querySelectorAll('#presetSeg button').forEach(b => {
     const q = QUICK[b.dataset.p];
-    b.classList.toggle('on', q.bomb === draft.bomb && q.wind === draft.wind && q.map === draft.map);
+    b.classList.toggle('on', q.bomb === draft.bomb && q.wind === draft.wind && q.map === draft.map && q.terrain === draft.terrain);
   });
   const B = CFG.bomb[draft.bomb], Wd = CFG.wind[draft.wind], Mp = CFG.map[draft.map];
-  $('bombHint').textContent = `정타 반경 ${B.core}m · 스침 반경 ${B.edge}m`;
-  $('windHint').textContent = Wd.max ? `매 턴 ${Wd.min}~${Wd.max}단계 · 멀리 쏠수록 더 밀려요` : '바람이 불지 않아요';
-  $('moveHint').textContent = draft.move === 'manual'
+  $('modeHint').textContent = MODES[draft.mode].hint;
+  $('bombHint').textContent = draft.mode === 'omok' ? `칸 간격 ${CFG.omok.gap[draft.bomb]}m · 작을수록 정확히 쏴야 해요`
+    : draft.mode === 'dice' ? `칸(주사위 면) 크기 ${CFG.dice.cell[draft.bomb]}m · 캐릭터 정타 판정 ${B.core}m`
+    : draft.mode === 'sign' ? `표지판 명중 반경 ${B.edge}m · 작을수록 정확히 쏴야 해요`
+    : draft.mode === 'hide' ? `정타 ${B.core}m · 스침 ${B.edge}m · '?' 범위 ${(B.edge * CFG.hide.qMul).toFixed(1)}m`
+    : `정타 반경 ${B.core}m · 스침 반경 ${B.edge}m`;
+  $('windHint').textContent = draft.mode === 'sign' ? `${CFG.sign.windSec}초마다 바뀌는 바람 · 두 사람에게 똑같이 적용`
+    : Wd.max ? `매 턴 ${Wd.min}~${Wd.max}단계 · 멀리 쏠수록 더 밀려요` : '바람이 불지 않아요';
+  $('moveHint').textContent = draft.mode === 'hide'
+    ? `직접 이동만 · 한 턴 최대 ${+(Mp.move * CFG.hide.moveMul).toFixed(2)}m · 물감 위로는 못 가요`
+    : draft.move === 'manual'
     ? `캐릭터를 끌어서 이동(한 턴 최대 ${Mp.move}m), 빈 곳 클릭으로 발사`
     : '매 턴 두 캐릭터가 랜덤한 자리로 폴짝 이동해요';
+  $('signRow').hidden = draft.mode !== 'sign';
+  document.querySelector('#menu .seg[data-key="terrain"]').closest('.row').hidden = true;   // 지형 선택은 숨김 (평지 고정)
+  $('terrainHint').hidden = true;
+  const lockMove = draft.mode === 'hide' || draft.mode === 'sign', lockSign = draft.mode === 'sign';
+  document.querySelector('#menu .seg[data-key="move"]').classList.toggle('disabled', lockMove);
+  document.querySelector('#menu .seg[data-key="terrain"]').classList.toggle('disabled', lockSign);   // 두 레인이 똑같도록 평지
+  document.querySelector('#menu .seg[data-key="axis"]').classList.toggle('disabled', lockSign);      // 가로 접는 선 고정
+  document.querySelector('#menu .seg[data-key="opp"] [data-v="pvp"]').hidden = lockMove ? true : false;
+  $('terrainHint').textContent = { flat: '평평한 종이 · 공이 막히지 않아요',
+    hill: '완만한 언덕 · 언덕이 앞을 가리면 공이 걸려요 (지형도 접는 선 기준으로 좌우 대칭)',
+    mountain: '높은 산 · 자리 잡기가 중요해요 (좌우 대칭)' }[draft.terrain];
   $('mapHint').textContent = `${Mp.w} × ${Mp.d}m · 넓을수록 대칭 가늠이 어렵고 바람도 오래 타요`;
   const score = { big: 0, normal: 1, small: 2 }[draft.bomb] + { off: 0, weak: 1, normal: 2, strong: 3 }[draft.wind]
-    + { small: 0, normal: 1, large: 2 }[draft.map];
-  const stars = 1 + Math.round(score * 4 / 7);
+    + { small: 0, normal: 1, large: 2 }[draft.map] + { flat: 0, hill: 1, mountain: 2 }[draft.terrain];
+  const stars = 1 + Math.round(score * 4 / 9);
   $('diffMeter').innerHTML = `판 난이도 <b>${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}</b>`;
   $('closeMenuBtn').hidden = !gameActive();
 }
@@ -1597,6 +2995,7 @@ $('menu').addEventListener('click', e => {
   if (seg?.dataset.key) draft[seg.dataset.key] = b.dataset.v;
   else if (seg?.id === 'presetSeg') Object.assign(draft, QUICK[b.dataset.p]);
   else return;
+  if ((draft.mode === 'hide' || draft.mode === 'sign') && draft.opp === 'pvp') draft.opp = 'ai';   // 한 화면에선 상대를 못 숨기고 동시에 조작도 못 함
   renderMenu();
 });
 $('startBtn').onclick = () => {
@@ -1629,12 +3028,12 @@ function updateChars(now, dt) {
   for (const ch of players) {
     const foe = players[1 - ch.zone];
     // 온라인: 친구가 끄는 위치를 부드럽게 따라감
-    if (ch.netPos && phase === 'remote' && ch.zone === turn) {
+    if (ch.netPos && (phase === 'remote' && ch.zone === turn || MODE === 'sign' && ch.zone !== turn)) {
       const k = 1 - Math.exp(-14 * dt);
       ch.pos.x += (ch.netPos.x - ch.pos.x) * k;
       ch.pos.z += (ch.netPos.z - ch.pos.z) * k;
     }
-    if (!((phase === 'aim' || phase === 'ai' || phase === 'remote') && ch.zone === turn) && phase !== 'flight' && phase !== 'fold' && foe) {
+    if (MODE !== 'sign' && !((phase === 'aim' || phase === 'ai' || phase === 'remote') && ch.zone === turn) && phase !== 'flight' && phase !== 'fold' && foe) {
       const dx = foe.pos.x - ch.pos.x, dz = foe.pos.z - ch.pos.z, l = Math.hypot(dx, dz) || 1;
       if (phase !== 'relocate') ch.faceTarget = Math.atan2(dx / l, dz / l + 0.9);
     }
@@ -1652,7 +3051,8 @@ function updateChars(now, dt) {
       const f = Math.sin(now * 0.05) > 0 ? hk * 0.9 : 0;
       ch.mats.forEach(m => m.emissive.setScalar(f));
     } else ch.mats.forEach(m => m.emissive.setScalar(0));
-    ch.root.position.set(ch.pos.x + sx, y, ch.pos.z);
+    ch.root.position.set(ch.pos.x + sx, y + terrainH(ch.pos.x, ch.pos.z), ch.pos.z);
+    ch.root.visible = !hiddenFrom(ch);   // 숨바꼭질: 상대는 안 보임
 
     if (ch.flat) ch.eyes.scale.y = 0.12;
     else if (now > ch.blinkAt) {
@@ -1660,6 +3060,13 @@ function updateChars(now, dt) {
       if (now > ch.blinkAt + 110) { ch.eyes.scale.y = 1; ch.blinkAt = now + rand(1800, 4500); }
     }
     ch.tag.position.y = 0.45 + 2.2 * ch.sq;
+    if (ch.mixer) {   // 모델 캐릭터: 움직이는 동안만 걷기 애니메이션
+      const lp = ch.lastPos || ch.pos, sp = dt > 0 ? Math.hypot(ch.pos.x - lp.x, ch.pos.z - lp.z) / dt : 0;
+      ch.lastPos = { ...ch.pos };
+      ch.walkW += ((sp > 0.4 && !ch.flat ? 1 : 0) - ch.walkW) * (1 - Math.exp(-8 * dt));
+      ch.walk.setEffectiveWeight(ch.walkW);
+      ch.mixer.update(dt);
+    }
     ch.ring.scale.setScalar(1 + Math.sin(now * 0.006) * 0.08);
   }
 }
@@ -1701,11 +3108,13 @@ function updateParticles(now, dt) {
   confetti = confetti.filter(m => {
     const u = m.userData;
     if (now - u.t0 > 7000) { remT(m); return false; }
-    if (m.position.y > 0.03) {
+    const floor = terrainH(m.position.x, m.position.z) + 0.03;
+    if (m.position.y > floor) {
       u.v.y -= 14 * dt; u.v.multiplyScalar(0.985);
       m.position.addScaledVector(u.v, dt);
       m.rotation.x += u.r.x * dt; m.rotation.y += u.r.y * dt; m.rotation.z += u.r.z * dt;
-      if (m.position.y < 0.03) { m.position.y = 0.03; m.rotation.x = -Math.PI / 2; m.rotation.y = 0; }
+      const f2 = terrainH(m.position.x, m.position.z) + 0.03;
+      if (m.position.y < f2) { m.position.y = f2; m.rotation.x = -Math.PI / 2; m.rotation.y = 0; }
     }
     return true;
   });
@@ -1729,6 +3138,7 @@ function frame() {
   updateAim(now);
   updateMoveArea();
   updateParticles(now, dt);
+  raceTick(now);
   netTick(now);
 
   camera.position.copy(camBaseCam.position);
@@ -1743,10 +3153,23 @@ function frame() {
 
 // 디버그/자동 테스트용 조회 훅
 window.__decal = {
-  state: () => ({ axis, turn, phase, move: settings.move, moveR: moveR(), wind: { ...wind },
+  state: () => ({ mode: MODE, axis, turn, phase, move: moveMode(),
+    sign: MODE === 'sign' ? { n: sign.n, idx: [...sign.idx], miss: [...sign.miss], shots: [...sign.shots], fin: [...sign.fin], done: [...sign.done], on: raceOn,
+      target: [signTarget(0), signTarget(1)], winds: sign.winds } : null,
+    hide: MODE === 'hide' ? { paints: paints.length, last: hideLast, shots: [...hideShots], hidden: players.map(hiddenFrom) } : null,
+    omok: MODE === 'omok' ? { g: omok.g, cols: omok.xs.length, rows: omok.zs.length, shots: omok.shots,
+      grid: omok.grid.map(c => c.join(',')), longest: [omokLongest(0), omokLongest(1)] } : null,
+    dice: MODE === 'dice' && dice.own ? { cols: dice.cols, rows: dice.rows, own: [...dice.own], count: [...dice.count], pct: [dicePct(0), dicePct(1)], shots: [...dice.shots] } : null, moveR: moveR(), wind: { ...wind },
     net: { me: net.me, host: net.host, connected: !!net.conn, code: net.code },
     players: players.map(p => ({ ...p.pos, hp: p.hp, from: p.moveFrom })) }),
-  toScreen(x, z, y = 0) {
+  terrainH, lastShot: () => lastShot, terrainTop: () => terrainTop,
+  // 이 자리에서 저 자리를 바람 없이 쏘면 언덕에 막히는가
+  blocked(px, pz, ax, az) {
+    const me = { pos: { x: px, z: pz } }, S = gunTip(me, Math.atan2(ax - px, az - pz));
+    const d = Math.hypot(ax - S.x, az - S.z), a = { x: ax, z: az };
+    return traceFlight(S, a, a, d).blocked;
+  },
+  toScreen(x, z, y = terrainH(x, z)) {
     tmpV.set(x, y, z).project(camBaseCam);
     const r = canvas.getBoundingClientRect();
     return { x: (tmpV.x + 1) / 2 * r.width, y: (1 - tmpV.y) / 2 * r.height };
@@ -1777,16 +3200,26 @@ window.__decal = {
   applySettings(s) { Object.assign(settings, s); applySettings(); },
 };
 
-// 처음엔 판만 깔아두고 설정 화면부터
+// 타이틀에서 시작을 누르면 기존 설정 화면으로. 초기화 전 클릭도 타이틀의 hidden 상태로 기억.
+let titleReady = false;
+document.addEventListener('decal:start', () => {
+  if (!titleReady) return;
+  openMenu();
+  $('menu').querySelector('button.on').focus({ preventScroll:true });
+});
+
+// 처음엔 판만 준비하고 타이틀에서 기다림 (초대 링크는 곧바로 참가).
 Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then(() => {
   applySettings();
+  setTerrain([]);
   buildBoard();
   phase = 'menu';
   // 초대 링크(?room=코드)로 들어오면 바로 그 방에 참가
   const room = new URLSearchParams(location.search).get('room');
   if (room) settings.opp = 'online';
   updateHud();
-  openMenu();
+  titleReady = true;
+  if (room || $('titleScreen').hidden) openMenu();
   if (room) { $('codeIn').value = room.toUpperCase(); netJoin(room); }
   requestAnimationFrame(frame);
 });
