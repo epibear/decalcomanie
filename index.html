@@ -863,11 +863,23 @@ const CHAR_H = 2.2;          // 화면 속 키 (안테나·모자 포함, m)
 const GUN_LEN = 0.62;        // 물감총 길이 (m)
 const GUN_DEF = { f: 0.72, r: 0.44, y: 0.72 };   // 총구 위치 (캐릭터 기준 앞·오른쪽·높이) — 모델을 쓰면 실제 총구로 바뀜
 const charModels = { ready: false, chars: [], walk: [], gun: null, gunTex: [] };
+// index.html을 파일로 바로 열면(file://) fetch가 막혀서, 빌드.mjs가 만든 모델데이터.js(base64)로 불러옴
+const loadModelData = () => new Promise((res, rej) => {
+  const s = document.createElement('script');
+  s.src = './아트/모델/모델데이터.js'; s.onload = res; s.onerror = rej;
+  document.head.append(s);
+});
+function loadGlb(L, name) {
+  if (location.protocol !== 'file:') return L.loadAsync(`./아트/모델/${name}.glb`);
+  const bytes = Uint8Array.from(atob(window.__decalModels[name]), c => c.charCodeAt(0));
+  return L.parseAsync(bytes.buffer, '');
+}
 const charModelsReady = (async () => {
   try {
     const L = new GLTFLoader();
     const names = ['물감이A_리깅', '물감이B_리깅', '물감이A_걷기', '물감이B_걷기', '물감총'];
-    const [a, b, aw, bw, gun] = await Promise.all(names.map(n => L.loadAsync(`./아트/모델/${n}.glb`)));
+    if (location.protocol === 'file:') await loadModelData();
+    const [a, b, aw, bw, gun] = await Promise.all(names.map(n => loadGlb(L, n)));
     charModels.chars = [a.scene, b.scene];
     charModels.walk = [aw.animations[0], bw.animations[0]];
     charModels.gun = gun.scene;
